@@ -5,129 +5,85 @@ import fs from 'fs'
 import cheerio from 'cheerio'
 import fetch from 'node-fetch'
 import axios from 'axios'
+import moment from 'moment-timezone' 
 
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
+
+        let _muptime
+    if (process.send) {
+      process.send('uptime')
+      _muptime = await new Promise(resolve => {
+        process.once('message', resolve)
+        setTimeout(resolve, 1000)
+      }) * 1000
+    }
+    let muptime = clockString(_muptime)
+
+function clockString(ms) {
+  let d = isNaN(ms) ? '--' : Math.floor(ms / 86400000)
+  let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000) % 24
+  let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
+  let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
+  return [d, 'd ', h, 'h ', m, 'm ', s, 's '].map(v => v.toString().padStart(2, 0)).join('')
+}
+
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
 global.owner = [
   ['51907376960', 'Yer 🌀', true],
- ['111270153982054@lid', 'bajo🐙', true]
+  ['54 9 11 6412-3932'],
+  ['51940842328'],
+  ['51915132066'],
+  ['54 9 221 502-2907'], 
+  ['5212431268546', 'Tesis', true],
+  ['5492215034412']
 ]
 
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
-global.mods = [111270153982054]
-global.prems = [51907376960]
+global.mods = []
+global.prems = []
+   
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
+global.packname = ``
+global.author = `{\n "bot": {\n   "name": "🐉孫ՏᴏɴᏀᴏᴋᴜ孫🐉",\n     "author": "YerTX2",\n   "status_bot": ${muptime}\n }\n}`
+global.wait = '*🐉孫ՏᴏɴᏀᴏᴋᴜ孫🐉*'
+global.botname = '🐉孫ՏᴏɴᏀᴏᴋᴜ孫🐉 '
+global.textbot = `🐉孫ՏᴏɴᏀᴏᴋᴜ孫🐉`
+global.listo = 'ENVIADO POR BOT SonGoku '
+global.namechannel = '【 SonGoku BOT 】 '
 
-global.packname = [ sᥲsᥙkᥱ ᑲ᥆𝗍 🌀
-global.author = 'sᥲsᥙkᥱ ᑲ᥆𝗍 mძ 🌀]'
-global.stickpack = '©sᥲsᥙkᥱ ᑲ᥆𝗍 mძ 🌀'
-global.stickauth = 'ᑲᥡ sᥲsᥙkᥱ ᑲ᥆𝗍'
-global.wm = 'sᥲsᥙkᥱ 🌀'
-global.dev = '© 𝖯᥆𝗐ᥱ𝗋ᥱძ ᑲᥡ 𝖲ᥙᥒ𝖿ᥣᥲ𝗋ᥱ  ☂  𝖳ᥱᥲ𝗆'
-global.wait = '🌪 Aɢᴜᴀʀᴅᴇ ᴜɴ ᴍᴏᴍᴇɴᴛᴏ, sᴏʏ ʟᴇɴᴛ𝙾... ฅ^•ﻌ•^ฅ\n\n> sᥲsᥙkᥱ ᑲ᥆𝗍 mძ 🌀 🌪'
-global.botname = '[ sᥲsᥙkᥱ ᑲ᥆𝗍 mძ 🌀 ]'
-global.textbot = ⍴᥆ᥕᥱrᥱძ ᑲᥡ sᥲsᥙkᥱ 🌀
-global.dev = '• ⍴᥆ᥕᥱrᥱძ ᑲᥡ ᥴ᥆mᥙᥒі𝗍ᥡ sᥲsᥙkᥱ ᑲ᥆𝗍 mძ 🌀'
-global.listo = 'Aqui tiene ฅ^•ﻌ•^ฅ'
-global.namechannel = 'sᥲsᥙkᥱ ᑲ᥆𝗍 mძ 🌀'
-global.channel = 'https://whatsapp.com/channel/0029Vaua0ZD3gvWjQaIpSy18'
-
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
-
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
+global.fantasyVid = ['./media/menus/Menuvid1.mp4', './media/menus/Menuvid2.mp4', './media/menus/Menuvid3.mp4']
 global.catalogo = fs.readFileSync('./storage/img/catalogo.png')
-global.miniurl = fs.readFileSync('./storage/img/miniurl.jpg')
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
+global.group = 'https://chat.whatsapp.com/COGynlbC2SVHx72LaLPsVG'
+global.canal = 'https://whatsapp.com/channel/0029Vaj67qQJUM2Wa5Ey3y1v'
 
-global.group = 'https://chat.whatsapp.com/CBuLXuVZcg9FEfCSHiY6b0'
-global.canal = 'https://whatsapp.com/channel/0029Vaua0ZD3gvWjQaIpSy18'
-global.insta = 'https://www.insta.com/https://www.insta.com/sebastian_barboza13'
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
+global.estilo = { key: {  fromMe: false, participant: `0@s.whatsapp.net`, ...(false ? { remoteJid: "120363314192605628-1625305606@g.us" } : {}) }, message: { orderMessage: { itemCount : -999999, status: 1, surface : 1, message: botname, orderTitle: 'Bang', thumbnail: catalogo, sellerJid: '0@s.whatsapp.net'}}}
 
-global.catalogo = fs.readFileSync('./storage/img/catalogo.png');
-global.estilo = { key: {  fromMe: false, participant: 0@s.whatsapp.net, ...(false ? { remoteJid: "5219992095479-1625305606@g.us" } : {}) }, message: { orderMessage: { itemCount : -999999, status: 1, surface : 1, message: packname, orderTitle: 'Bang', thumbnail: catalogo, sellerJid: '0@s.whatsapp.net'}}}
-
-global.ch = {
-ch1: '120363414007802886@newsletter',
-ch2: '120363419364337473@newsletter'
-}
-
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
 global.cheerio = cheerio
 global.fs = fs
 global.fetch = fetch
 global.axios = axios
-global.jadi = 'Sesiones/Subbots'
-global.Sesion = 'Sesiones/Principal'
-global.dbname = 'database.json'
+global.moment = moment	
 
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
-
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
+global.botLimit = 15
+global.conns = []
 global.multiplier = 69 
 global.maxwarn = '2' // máxima advertencias
 
-//─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─
-
-//Apis
-
-global.APIs = {
-amel: 'https://melcanz.com',
-bx: 'https://bx-hunter.herokuapp.com',
-nrtm: 'https://nurutomo.herokuapp.com',
-xteam: 'https://api.xteam.xyz',
-nzcha: 'http://nzcha-apii.herokuapp.com',
-bg: 'http://bochil.ddns.net',
-fdci: 'https://api.fdci.se',
-dzx: 'https://api.dhamzxploit.my.id',
-bsbt: 'https://bsbt-api-rest.herokuapp.com',
-zahir: 'https://zahirr-web.herokuapp.com',
-zeks: 'https://api.zeks.me',
-hardianto: 'https://hardianto-chan.herokuapp.com',
-pencarikode: 'https://pencarikode.xyz',
-LeysCoder: 'https://leyscoders-api.herokuapp.com',
-adiisus: 'https://adiixyzapi.herokuapp.com',
-lol: 'https://api.lolhuman.xyz',
-fgmods: 'https://api-fgmods.ddns.net',
-pencarikode: 'https://pencarikode.xyz',
-Velgrynd: 'https://velgrynd.herokuapp.com',
-rey: 'https://server-api-rey.herokuapp.com',
-hardianto: 'http://hardianto-chan.herokuapp.com',
-shadow: 'https://api.reysekha.xyz',
-apialc: 'https://api-alc.herokuapp.com',
-botstyle: 'https://botstyle-api.herokuapp.com',
-neoxr: 'https://neoxr-api.herokuapp.com',
-ana: 'https://anabotofc.herokuapp.com/',
-kanx: 'https://kannxapi.herokuapp.com/',
-dhnjing: 'https://dhnjing.xyz'
-},
-
-global.APIKeys = {
-'https://api-alc.herokuapp.com': 'ConfuMods',
-'https://api.reysekha.xyz': 'apirey',
-'https://melcanz.com': 'F3bOrWzY',
-'https://bx-hunter.herokuapp.com': 'Ikyy69',
-'https://api.xteam.xyz': '5bd33b276d41d6b4',
-'https://zahirr-web.herokuapp.com': 'zahirgans',
-'https://bsbt-api-rest.herokuapp.com': 'benniismael',
-'https://api.zeks.me': 'apivinz',
-'https://hardianto-chan.herokuapp.com': 'hardianto',
-'https://pencarikode.xyz': 'pais',
-'https://api-fgmods.ddns.net': 'fg-dylux',
-'https://leyscoders-api.herokuapp.com': 'MIMINGANZ',
-'https://server-api-rey.herokuapp.com': 'apirey',
-'https://api.lolhuman.xyz': 'GataDiosV2',
-'https://botstyle-api.herokuapp.com': 'Eyar749L',
-'https://neoxr-api.herokuapp.com': 'yntkts',
-'https://anabotofc.herokuapp.com/': 'AnaBot'
-} 
+//*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
 let file = fileURLToPath(import.meta.url)
 watchFile(file, () => {
   unwatchFile(file)
   console.log(chalk.redBright("Update 'config.js'"))
-  import(${file}?update=${Date.now()})
+  import(`${file}?update=${Date.now()}`)
 })
