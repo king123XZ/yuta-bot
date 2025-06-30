@@ -152,7 +152,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 };
 
-handler.command = ["play", "play2", "yta", "ytmp3", "ytv", "ytmp4"];
+handler.command = ["play15", "play2", "yta", "ytmp3", "ytv", "ytmp4"];
 handler.tags = ["downloader"];
 handler.help = ["play", "play2", "yta", "ytmp3", "ytv", "ytmp4"];
 handler.register = true;
