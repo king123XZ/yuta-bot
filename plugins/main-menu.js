@@ -7,7 +7,7 @@ const clockString = ms => {
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 };
 
-const videoUrl = "https://o.uguu.se/bQFTjofP.mp4"; // Enlace del video
+const videoUrl = "https://o.uguu.se/bQFTjofP.mp4"; // Enlace del video tipo GIF
 
 const menuHeader = `
 ╭─❒ 「 Jujutsu Kaisen 」
@@ -20,10 +20,8 @@ const menuHeader = `
 ╰❒
 `.trim();
 
-// Divisor de sección
 const sectionDivider = '╰─────────────────╯';
 
-// Pie de página del menú
 const menuFooter = `
 ╭─❒ 「 *📌 INFO FINAL* 」
 │ ⚠️ *Usa los comandos con el prefijo correspondiente.*
@@ -103,7 +101,8 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     const fullMenu = `${finalHeader}\n\n${menuBody}\n\n${menuFooter}`;
 
     await conn.sendMessage(m.chat, {
-      video: { url: videoUrl }, // Enviar el video en lugar de la imagen
+      video: { url: videoUrl },
+      gifPlayback: true, // Esto lo hace tipo GIF (loop y autoplay)
       caption: fullMenu,
       mentions: [m.sender]
     }, { quoted: m });
@@ -117,3 +116,4 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
 handler.command = ['menu', 'help', 'menú'];
 
 export default handler;
+
