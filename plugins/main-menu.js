@@ -116,4 +116,3 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
 handler.command = ['menu', 'help', 'menú'];
 
 export default handler;
-
