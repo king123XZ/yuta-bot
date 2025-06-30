@@ -7,10 +7,10 @@ const clockString = ms => {
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 };
 
-const imagen = "https://files.catbox.moe/6dewf4.jpg";
+const videoUrl = "https://o.uguu.se/bQFTjofP.mp4"; // Enlace del video
 
 const menuHeader = `
-╭─❒ 「 sᥲsᥙkᥱ ᑲ᥆𝗍 mძ 🌀 」
+╭─❒ 「 Jujutsu Kaisen 」
 │ 👤 *Nombre:* %name
 │ 🎖 *Nivel:* %level | *XP:* %exp/%max
 │ 🔓 *Límite:* %limit | *Modo:* %mode
@@ -32,7 +32,7 @@ const menuFooter = `
 ╰❒
 `.trim();
 
-let handler = async (m, { conn, usedPrefix: _p }) => { // Corrected parameter here
+let handler = async (m, { conn, usedPrefix: _p }) => {
   try {
     const user = global.db?.data?.users?.[m.sender] || { level: 1, exp: 0, limit: 5 };
     const { exp, level, limit } = user;
@@ -103,16 +103,17 @@ let handler = async (m, { conn, usedPrefix: _p }) => { // Corrected parameter he
     const fullMenu = `${finalHeader}\n\n${menuBody}\n\n${menuFooter}`;
 
     await conn.sendMessage(m.chat, {
-      image: { url: imagen },
+      video: { url: videoUrl }, // Enviar el video en lugar de la imagen
       caption: fullMenu,
       mentions: [m.sender]
     }, { quoted: m });
 
   } catch (e) {
     console.error(e);
-    conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú. Por favor, inténtalo de nuevo más tarde o contacta al soporte.', m); // Removed rcanal here
+    conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú. Por favor, inténtalo de nuevo más tarde o contacta al soporte.', m);
   }
 };
+
 handler.command = ['menu', 'help', 'menú'];
 
 export default handler;
