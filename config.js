@@ -10,11 +10,11 @@ import axios from 'axios'
 
   global.owner = [
   [ '172056423456949@lid', 'Barboza OFC', true ],
-  [ '50577688033', 'Goku', true ],
+  [ '51907376960', 'Goku', true ],
   [ '584146277368', 'Willzek', true ],
   [ '5212431268546', "I'm Fz ~", true ],
   [ '111270153982054@lid', 'bajobots', true ],
-  [ '51928626068', "MediaHub",true ],
+  [ '51907376960', "MediaHub",true ],
   [ '172056423456949', true ]
   ]
 //*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
