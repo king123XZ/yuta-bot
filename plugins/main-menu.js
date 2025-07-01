@@ -100,20 +100,21 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
 
     const fullMenu = `${finalHeader}\n\n${menuBody}\n\n${menuFooter}`;
 
-    // --- BLOQUE CON BOTONES ---
+    // BOTONES
+    const buttons = [
+      { buttonId: `${_p}descargasmenu`, buttonText: { displayText: '📥 Descargas' }, type: 1 },
+      { buttonId: `${_p}gruposmenu`, buttonText: { displayText: '👥 Grupos' }, type: 1 },
+      { buttonId: `${_p}masmenu`, buttonText: { displayText: '🧩 Más cosas' }, type: 1 }
+    ];
+
     await conn.sendMessage(m.chat, {
       video: { url: videoUrl },
       gifPlayback: true,
       caption: fullMenu,
       mentions: [m.sender],
-      buttons: [
-        {buttonId: `${_p}info`, buttonText: {displayText: '📋 Info'}, type: 1},
-        {buttonId: `${_p}owner`, buttonText: {displayText: '👤 Creador'}, type: 1},
-        {buttonId: `${_p}estado`, buttonText: {displayText: '📊 Estado'}, type: 1}
-      ],
-      headerType: 4 // 4 para video/gif, 1 solo texto
+      buttons: buttons,
+      headerType: 4 // 4 para video
     }, { quoted: m });
-    // --- FIN BOTONES ---
 
   } catch (e) {
     console.error(e);
