@@ -7,7 +7,7 @@ const clockString = ms => {
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 };
 
-const videoUrl = "https://o.uguu.se/bQFTjofP.mp4"; // Video tipo GIF
+const videoUrl = "https://cdn.russellxz.click/f630e442.mp4"; // Video tipo GIF
 
 const menuHeader = `
 ╔═════『 𓆩⟦✦ 𝙹𝚄𝙹𝚄𝚃𝚂𝚄 𝙺𝙰𝙸𝚂𝙴𝙽 ✦⟧𓆪 』═════╗
