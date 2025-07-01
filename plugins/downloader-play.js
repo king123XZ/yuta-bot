@@ -3,18 +3,18 @@ import yts from "yt-search";
 import axios from "axios";
 
 const formatAudio = ["mp3", "m4a", "webm", "acc", "flac", "opus", "ogg", "wav"];
-const formatVideo = ["360", "480", "720", "1080", "1440", "4k"];
 
-const videoSources = [
-  url => `https://api.siputzx.my.id/api/d/ytmp4?url=${url}`,
-  url => `https://api.zenkey.my.id/api/download/ytmp4?apikey=zenkey&url=${url}`,
-  url => `https://axeel.my.id/api/download/video?url=${encodeURIComponent(url)}`,
-  url => `https://delirius-apiofc.vercel.app/download/ytmp4?url=${url}`
+// APIs backup por si oceansaver falla
+const audioSources = [
+  url => `https://api.siputzx.my.id/api/d/ytmp3?url=${url}`,
+  url => `https://api.zenkey.my.id/api/download/ytmp3?apikey=zenkey&url=${url}`,
+  url => `https://axeel.my.id/api/download/audio?url=${encodeURIComponent(url)}`,
+  url => `https://delirius-apiofc.vercel.app/download/ytmp3?url=${url}`
 ];
 
 const ddownr = {
   download: async (url, format) => {
-    if (!formatAudio.includes(format) && !formatVideo.includes(format)) {
+    if (!formatAudio.includes(format)) {
       throw new Error("⚠️ Formato no compatible.");
     }
 
@@ -30,7 +30,7 @@ const ddownr = {
       const downloadUrl = await ddownr.cekProgress(id, 15000);
       return { id, title, image: info.image, downloadUrl };
     } else {
-      throw new Error("⛔ No se pudo procesar el video (API principal).");
+      throw new Error("⛔ No se pudo procesar el audio (API principal).");
     }
   },
 
@@ -53,13 +53,13 @@ const ddownr = {
 };
 
 const handler = async (m, { conn, text, command }) => {
-  await m.react("⚡️");
+  await m.react("🎵");
 
   if (!text.trim()) {
-    return conn.reply(m.chat, "📌 *YutaBot* | Escribe el nombre de la canción o video.", m);
+    return conn.reply(m.chat, "📌 *YutaBot* | Escribe el nombre de la canción.", m);
   }
 
-  let loading = await conn.reply(m.chat, "🔄 *Yuta está buscando... 10%*", m);
+  const loading = await conn.reply(m.chat, "🔄 *Yuta está buscando tu canción...*", m);
 
   try {
     const search = await yts(text);
@@ -72,9 +72,7 @@ const handler = async (m, { conn, text, command }) => {
     const vistas = formatViews(views);
     const thumb = (await conn.getFile(thumbnail))?.data;
 
-    await conn.sendMessage(m.chat, { text: "⏳ *50% completado...*" }, { quoted: loading });
-
-    const infoMessage = `🔰 *YutaBot Downloader*
+    const infoMessage = `🎧 *YutaBot Music Downloader*
 ─────────────────────
 🎵 *Título:* ${title}
 ⏱️ *Duración:* ${timestamp}
@@ -83,11 +81,11 @@ const handler = async (m, { conn, text, command }) => {
 📅 *Publicado:* ${ago}
 🔗 *Enlace:* ${url}`;
 
-    const ad = {
+    await conn.reply(m.chat, infoMessage, m, {
       contextInfo: {
         externalAdReply: {
           title: "YutaBot",
-          body: "El poder de Yuta a tu servicio.",
+          body: "El poder de Yuta descargando música.",
           mediaType: 1,
           previewType: 0,
           mediaUrl: url,
@@ -96,56 +94,22 @@ const handler = async (m, { conn, text, command }) => {
           renderLargerThumbnail: true
         }
       }
-    };
+    });
 
-    await conn.reply(m.chat, infoMessage, m, ad);
+    await conn.sendMessage(m.chat, { text: "⏳ *Procesando audio...*" }, { quoted: loading });
 
-    await conn.sendMessage(m.chat, { text: "✅ *Carga completada 100%*" }, { quoted: loading });
+    try {
+      const api = await ddownr.download(url, "mp3");
+      return conn.sendMessage(m.chat, {
+        audio: { url: api.downloadUrl },
+        mimetype: "audio/mpeg",
+        fileName: `${title}.mp3`
+      }, { quoted: m });
+    } catch (err) {
+      console.log(`⚠️ Oceansaver falló: ${err.message}`);
 
-    // AUDIO - play | yta | ytmp3
-    if (["play", "yta", "ytmp3"].includes(command)) {
-      try {
-        const api = await ddownr.download(url, "mp3");
-        return conn.sendMessage(m.chat, {
-          audio: { url: api.downloadUrl },
-          mimetype: "audio/mpeg",
-          fileName: `${title}.mp3`
-        }, { quoted: m });
-      } catch (err) {
-        console.log(`⚠️ Oceansaver falló: ${err.message}`);
-        // Usa backup si falla
-        let found = false;
-        for (let getUrl of videoSources) {
-          try {
-            const res = await fetch(getUrl(url), {
-              headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
-            });
-            const json = await res.json();
-            const downloadUrl = json.data?.dl || json.result?.download?.url || json.downloads?.url || json.data?.download?.url;
-
-            if (downloadUrl) {
-              found = true;
-              await conn.sendMessage(m.chat, {
-                audio: { url: downloadUrl },
-                mimetype: "audio/mpeg",
-                fileName: `${title}.mp3`
-              }, { quoted: m });
-              break;
-            }
-          } catch (e2) {
-            console.log(`⚠️ Backup falló: ${getUrl(url)} | ${e2.message}`);
-          }
-        }
-        if (!found) {
-          return conn.reply(m.chat, "❌ *Yuta no pudo encontrar un enlace válido para el audio.*", m);
-        }
-      }
-    }
-
-    // VIDEO - play2 | ytv | ytmp4
-    if (["play2", "ytv", "ytmp4"].includes(command)) {
       let found = false;
-      for (let getUrl of videoSources) {
+      for (let getUrl of audioSources) {
         try {
           const res = await fetch(getUrl(url), {
             headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
@@ -156,33 +120,31 @@ const handler = async (m, { conn, text, command }) => {
           if (downloadUrl) {
             found = true;
             await conn.sendMessage(m.chat, {
-              video: { url: downloadUrl },
-              mimetype: "video/mp4",
-              fileName: `${title}.mp4`,
-              caption: `🎥 *YutaBot* | Aquí está tu video.`,
-              thumbnail: thumb
+              audio: { url: downloadUrl },
+              mimetype: "audio/mpeg",
+              fileName: `${title}.mp3`
             }, { quoted: m });
             break;
           }
-        } catch (e) {
-          console.log(`⚠️ Fuente falló: ${getUrl(url)} | ${e.message}`);
+        } catch (e2) {
+          console.log(`⚠️ Backup falló: ${getUrl(url)} | ${e2.message}`);
         }
       }
 
       if (!found) {
-        return conn.reply(m.chat, "❌ *Yuta no pudo encontrar un enlace válido para el video.*", m);
+        return conn.reply(m.chat, "❌ *Yuta no pudo encontrar un enlace válido para el audio.*", m);
       }
     }
 
   } catch (error) {
-    console.error("❌ Error general:", error);
+    console.error("❌ Error:", error);
     return conn.reply(m.chat, `⚠️ *YutaBot* | Error: ${error.message}`, m);
   }
 };
 
-handler.command = ["play", "play2", "yta", "ytmp3", "ytmp4", "ytv"];
+handler.command = ["play", "yta", "ytmp3"];
 handler.tags = ["downloader"];
-handler.help = ["play", "play2", "yta", "ytmp3", "ytmp4", "ytv"];
+handler.help = ["play", "yta", "ytmp3"];
 handler.register = true;
 
 export default handler;
