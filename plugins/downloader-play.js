@@ -4,7 +4,7 @@ import axios from "axios";
 
 const formatAudio = ["mp3", "m4a", "webm", "acc", "flac", "opus", "ogg", "wav"];
 
-// APIs alternativos para audio
+// APIs principales en paralelo
 const audioSources = [
   url => `https://api.siputzx.my.id/api/d/ytmp3?url=${url}`,
   url => `https://api.zenkey.my.id/api/download/ytmp3?apikey=zenkey&url=${url}`,
@@ -12,32 +12,29 @@ const audioSources = [
   url => `https://delirius-apiofc.vercel.app/download/ytmp3?url=${url}`
 ];
 
-// DDOWNR solo se usa como fallback
+// DDOWNR (última opción)
 const ddownr = {
   download: async (url, format) => {
-    if (!formatAudio.includes(format)) {
-      throw new Error("⚠️ Formato no compatible.");
-    }
-
+    if (!formatAudio.includes(format)) throw new Error("⚠️ Formato no compatible.");
     const config = {
       method: "GET",
       url: `https://p.oceansaver.in/ajax/download.php?format=${format}&url=${encodeURIComponent(url)}`,
-      headers: { "User-Agent": "Mozilla/5.0" }
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
     };
     const response = await axios.request(config);
     if (response.data?.success) {
       const { id, title, info } = response.data;
-      const downloadUrl = await ddownr.cekProgress(id, 10000);
-      return { title, image: info.image, downloadUrl };
+      const downloadUrl = await ddownr.cekProgress(id, 8000);
+      return { title, downloadUrl };
     }
-    throw new Error("❌ DDOWNR falló.");
+    throw new Error("❌ DDOWNR falló");
   },
 
-  cekProgress: async (id, timeout = 10000) => {
+  cekProgress: async (id, timeout = 8000) => {
     const config = {
       method: "GET",
       url: `https://p.oceansaver.in/ajax/progress.php?id=${id}`,
-      headers: { "User-Agent": "Mozilla/5.0" }
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
     };
     const start = Date.now();
     while (true) {
@@ -52,16 +49,12 @@ const ddownr = {
 };
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
-  await m.react("🔎");
+  await m.react("🎵");
   if (!text.trim()) {
-    return conn.reply(
-      m.chat,
-      "🎧 *YutaBot* | Escribe el nombre de la canción.",
-      m
-    );
+    return conn.reply(m.chat, "🎧 *YutaBot* | Escribe el nombre de la canción.", m);
   }
 
-  const msg = await m.reply("⏳ Buscando...");
+  const msg = await m.reply("⏳ *Buscando canción...*");
 
   try {
     const search = await yts(text);
@@ -70,9 +63,11 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const videoInfo = search.all[0];
     const { title, url } = videoInfo;
 
-    // 🔥 Lanza todas las peticiones en paralelo
-    const promises = audioSources.map(getUrl =>
-      fetch(getUrl(url))
+    // 🔥 Ejecuta todas las APIs a la vez con User-Agent
+    const tasks = audioSources.map(getUrl =>
+      fetch(getUrl(url), {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
+      })
         .then(res => res.json())
         .then(json => {
           const downloadUrl =
@@ -85,11 +80,11 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         })
     );
 
-    // Si todas fallan, fallback a DDOWNR
-    promises.push(ddownr.download(url, "mp3"));
+    // Agrega DDOWNR como último recurso
+    tasks.push(ddownr.download(url, "mp3"));
 
-    // Corre todas, usa la primera que funcione
-    const { downloadUrl } = await Promise.any(promises);
+    // Corre todo: primero que responde GANA
+    const { downloadUrl } = await Promise.any(tasks);
 
     await conn.sendMessage(
       m.chat,
@@ -104,7 +99,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     await m.react("✅");
   } catch (error) {
     console.error("❌ Error:", error);
-    return m.reply(`⚠️ Error: ${error.message}`);
+    return m.reply(`⚠️ *YutaBot* | Error: ${error.message}`);
   }
 };
 
