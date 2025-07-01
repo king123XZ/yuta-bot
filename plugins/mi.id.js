@@ -1,11 +1,14 @@
-let handler = async (m, { conn }) => {
-  const miJid = conn.user.id   // JID de tu bot (tú)
-  const numero = miJid.split('@')[0] // solo número
+let handler = async (m) => {
+  const jid = m.sender // JID real del usuario (ej: 52123456789@s.whatsapp.net)
 
-  await m.reply(`✅ *Mi JID:* ${miJid}\n📌 *Mi número:* ${numero}`)
+  // Si ya tiene @lid, lo usamos tal cual
+  let lid = jid.endsWith('@lid')
+    ? jid
+    : jid.split('@')[0] + '@lid'
+
+  await m.reply(`✅ *Tu LID:* ${lid}`)
 }
 
-handler.command = /^mijid$/i  // Escribes: !mijid
+handler.command = /^mylid$/i  // Usa !mylid
 
 export default handler
-
