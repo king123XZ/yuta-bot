@@ -7,27 +7,27 @@ const clockString = ms => {
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 };
 
-const videoUrl = "https://o.uguu.se/bQFTjofP.mp4"; // Enlace del video tipo GIF
+const videoUrl = "https://o.uguu.se/bQFTjofP.mp4"; // Video tipo GIF
 
 const menuHeader = `
-╭─❒ 「 Jujutsu Kaisen 」
-│ 👤 *Nombre:* %name
-│ 🎖 *Nivel:* %level | *XP:* %exp/%max
-│ 🔓 *Límite:* %limit | *Modo:* %mode
-│ ⏱️ *Uptime:* %uptime
-│ 🌍 *Usuarios:* %total
-│ 🤖 *Bot optimizado para mejor rendimiento.*
-╰❒
+╔═════『 𓆩⟦✦ 𝙹𝚄𝙹𝚄𝚃𝚂𝚄 𝙺𝙰𝙸𝚂𝙴𝙽 ✦⟧𓆪 』═════╗
+║ 𖤐 𝙽𝚘𝚖𝚋𝚛𝚎: 𝑨 %name
+║ 𖤐 𝙽𝚒𝚟𝚎𝚕: 𝑳 %level | 𝑿𝑷: %exp/%max
+║ 𖤐 𝙻í𝚖𝚒𝚝𝚎: 𝑳 %limit | 𝙼𝚘𝚍𝚘: %mode
+║ 𖤐 𝚄𝚙𝚝𝚒𝚖𝚎: 𝑼 %uptime
+║ 𖤐 𝚄𝚜𝚞𝚊𝚛𝚒𝚘𝚜: 𝑼 %total
+║ 𖤐 𝙱𝚘𝚝 𝚘𝚙𝚝𝚒𝚖𝚒𝚣𝚊𝚍𝚘 𝚙𝚊𝚛𝚊 𝚖𝚎𝚓𝚘𝚛 𝚛𝚎𝚗𝚍𝚒𝚖𝚒𝚎𝚗𝚝𝚘.
+╚════════════════════════════╝
 `.trim();
 
-const sectionDivider = '╰─────────────────╯';
+const sectionDivider = '╰⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻╯';
 
 const menuFooter = `
-╭─❒ 「 *📌 INFO FINAL* 」
-│ ⚠️ *Usa los comandos con el prefijo correspondiente.*
-
-> Creado por Barboza-Team
-╰❒
+╔═════『 𓆩⟦✦ 𝙸𝙽𝙵𝙾 𝙵𝙸𝙽𝙰𝙻 ✦⟧𓆪 』═════╗
+║ 【⚠️】 𝚄𝚜𝚊 𝚕𝚘𝚜 𝚌𝚘𝚖𝚊𝚗𝚍𝚘𝚜 𝚌𝚘𝚗 𝚎𝚕 𝚙𝚛𝚎𝚏𝚒𝚓𝚘 𝚌𝚘𝚛𝚛𝚎𝚌𝚝𝚘.
+║
+║ 𖤐 𝘾𝙧𝙚𝙖𝙙𝙤 𝙥𝙤𝙧 𝘽𝙖𝙧𝙗𝙤𝙯𝙖-𝙏𝙚𝙖𝙢
+╚════════════════════════════╝
 `.trim();
 
 let handler = async (m, { conn, usedPrefix: _p }) => {
@@ -37,10 +37,10 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     const { min, xp } = xpRange(level, global.multiplier || 1);
     const totalreg = Object.keys(global.db?.data?.users || {}).length;
 
-    const mode = global.opts?.self ? 'Privado 🔒' : 'Público 🌐';
+    const mode = global.opts?.self ? '𝙿𝚛𝚒𝚟𝚊𝚍𝚘 🔒' : '𝙿𝚞́𝚋𝚕𝚒𝚌𝚘 🌐';
     const uptime = clockString(process.uptime() * 1000);
 
-    let name = "Usuario";
+    let name = "𝑼𝒔𝒖𝒂𝒓𝒊𝒐";
     try {
       name = await conn.getName(m.sender);
     } catch {}
@@ -59,8 +59,9 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
         commands.forEach(cmd => categorizedCommands[tag].add(cmd));
       });
 
+    // Emojis y efectos para cada menú
     const emojis = {
-      anime: "🎭",
+      anime: "🌸",
       info: "ℹ️",
       search: "🔎",
       diversión: "🎉",
@@ -81,11 +82,16 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
       otros: "🪪"
     };
 
+    // Cuerpo del menú altamente decorado
     const menuBody = Object.entries(categorizedCommands).map(([title, cmds]) => {
       const cleanTitle = title.toLowerCase().trim();
-      const emoji = emojis[cleanTitle] || "📁";
-      const entries = [...cmds].map(cmd => `│ ◦ _${_p}${cmd}_`).join('\n');
-      return `╭─「 ${emoji} *${title.toUpperCase()}* 」\n${entries}\n${sectionDivider}`;
+      const emoji = emojis[cleanTitle] || "✦";
+      const decoStart = "•⟡";
+      const decoEnd = "⟡•";
+      const entries = [...cmds].map(cmd =>
+        `║ ${decoStart} _${_p}${cmd}_ ${decoEnd}`
+      ).join('\n');
+      return `╔═『 ${emoji} 𓃠 ${title.toUpperCase()} 』═╗\n${entries}\n${sectionDivider}`;
     }).join('\n\n');
 
     const finalHeader = menuHeader
@@ -98,22 +104,13 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
       .replace('%uptime', uptime)
       .replace('%total', totalreg);
 
-    const fullMenu = `${finalHeader}\n\n${menuBody}\n\n${menuFooter}`;
-
-    // BOTONES
-    const buttons = [
-      { buttonId: `${_p}descargasmenu`, buttonText: { displayText: '📥 Descargas' }, type: 1 },
-      { buttonId: `${_p}gruposmenu`, buttonText: { displayText: '👥 Grupos' }, type: 1 },
-      { buttonId: `${_p}masmenu`, buttonText: { displayText: '🧩 Más cosas' }, type: 1 }
-    ];
+    const fullMenu = `⸻⸻⸻⸻⸻⸻⸻⸻ DV YER🔥 ⸻⸻⸻⸻⸻⸻⸻⸻\n\n${finalHeader}\n\n${menuBody}\n\n${menuFooter}\n\n╔════════════════════════╗\n║ Recursos decorativos:  ║\n╠ Tabla Letras 🌀: 𝑨 𝑩 𝑪 𝑫 𝑬 𝑭 𝑮 ...\n╠ Decos: ৡৢ͜͡  ᬊ͜͡   ೈ፝͜͡   ░⃟⃛ ➮ ⏤͟͟͞͞ ᭄ ⎊ ⎈ ꧁ ꧂   ࿗ ༒ ༆ༀ\n╚════════════════════════╝\n`;
 
     await conn.sendMessage(m.chat, {
       video: { url: videoUrl },
-      gifPlayback: true,
+      gifPlayback: true, // loop & autoplay
       caption: fullMenu,
-      mentions: [m.sender],
-      buttons: buttons,
-      headerType: 4 // 4 para video
+      mentions: [m.sender]
     }, { quoted: m });
 
   } catch (e) {
@@ -123,5 +120,4 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
 };
 
 handler.command = ['menu', 'help', 'menú'];
-
 export default handler;
