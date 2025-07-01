@@ -1,47 +1,57 @@
+import { createHash } from 'crypto';
 
-import { createHash} from 'crypto';
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  let regFormat = /^([^\s]+)\.(\d+)\.(\w+)$/i;
+  let userDB = global.db.data.users[m.sender];
+  let videoUrl = 'https://d.uguu.se/OnNOpznk.mp4';
 
-let handler = async (m, { conn, text, usedPrefix, command}) => {
-    let regFormat = /^([^\s]+)\.(\d+)\.(\w+)$/i;
-    let userDB = global.db.data.users[m.sender];
-    let imageUrl = 'https://files.catbox.moe/6dewf4.jpg';
+  if (userDB?.registered) {
+    return m.reply(`✅ Ya estás registrado.\nSi deseas eliminar tu registro, usa: *${usedPrefix}unreg*`);
+  }
 
-    if (userDB?.registered) {
-        return m.reply(`✅ Ya estás registrado.\nSi deseas eliminar tu registro, usa: *${usedPrefix}unreg*`);
-}
+  if (!regFormat.test(text)) {
+    return m.reply(`❌ Formato incorrecto.\n\n📌 Usa: *${usedPrefix + command} Nombre.Edad.País*\n📍 Ejemplo: *${usedPrefix + command} Yuta.20.Japon*`);
+  }
 
-    if (!regFormat.test(text)) {
-        return m.reply(`❌ Formato incorrecto.\nUsa: *${usedPrefix + command} Nombre.Edad.País*\nEjemplo: *${usedPrefix + command} Barboza.18.Venezuela*`);
-}
+  let [_, name, age, country] = text.match(regFormat);
+  age = parseInt(age);
 
-    let [_, name, age, country] = text.match(regFormat);
-    age = parseInt(age);
+  if (!name || name.length > 50) return m.reply('❌ Nombre inválido o demasiado largo.');
+  if (isNaN(age) || age < 5 || age > 100) return m.reply('❌ Edad no válida.');
+  if (!country || country.length > 30) return m.reply('❌ País inválido o demasiado largo.');
 
-    if (!name || name.length> 50) return m.reply('❌ Nombre inválido o demasiado largo.');
-    if (isNaN(age) || age < 5 || age> 100) return m.reply('❌ Edad no válida.');
-    if (!country || country.length> 30) return m.reply('❌ País inválido o demasiado largo.');
+  let userHash = createHash('md5').update(m.sender).digest('hex');
 
-    let userHash = createHash('md5').update(m.sender).digest('hex');
+  global.db.data.users[m.sender] = {
+    name,
+    age,
+    country,
+    registered: true,
+    regTime: Date.now(),
+    id: userHash
+  };
 
-    global.db.data.users[m.sender] = {
-        name,
-        age,
-        country,
-        registered: true,
-        regTime: Date.now(),
-        id: userHash
-};
+  let confirmMsg = `✨ *YutaBot - Registro Completo!*
 
-    let confirmMsg = `🎉 *Registro exitoso!*\n\n📂 Tus datos:\n👤 *Nombre:* ${name}\n🎂 *Edad:* ${age} años\n🌍 *País:* ${country}\n🆔 *Código:* ${userHash}`;
+📄 *Datos Registrados:*
+👤 *Nombre:* ${name}
+🎂 *Edad:* ${age} años
+🌏 *País:* ${country}
+🆔 *Código ID:* ${userHash}
 
-    await conn.sendMessage(m.chat, {
-        image: { url: imageUrl},
-        caption: confirmMsg
-});
+🔰 *Bienvenido a la familia de Yuta.*`;
 
-    await conn.sendMessage(m.chat, {
-        text: `✅ *Verificación completada!*\n\nTu registro ha sido validado y guardado correctamente.`,
-});
+  // Envía video/gif con tema de Yuta
+  await conn.sendMessage(m.chat, {
+    video: { url: videoUrl },
+    caption: confirmMsg,
+    gifPlayback: true
+  });
+
+  // Mensaje final
+  await conn.sendMessage(m.chat, {
+    text: `✅ *Verificación completada!*\n\n💙 Gracias por registrarte con *YutaBot*.\n✨ ¡Prepárate para vivir la experiencia!`
+  });
 };
 
 handler.help = ['registrar <nombre.edad.país>'];
