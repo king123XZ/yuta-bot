@@ -3,7 +3,6 @@ import yts from "yt-search";
 import axios from "axios";
 
 const formatAudio = ["mp3", "m4a", "webm", "acc", "flac", "opus", "ogg", "wav"];
-const formatVideo = ["360", "480", "720", "1080", "1440", "4k"];
 
 // APIs alternativos para audio
 const audioSources = [
@@ -13,47 +12,28 @@ const audioSources = [
   url => `https://delirius-apiofc.vercel.app/download/ytmp3?url=${url}`
 ];
 
+// DDOWNR solo se usa como fallback
 const ddownr = {
   download: async (url, format) => {
-    if (!formatAudio.includes(format) && !formatVideo.includes(format)) {
+    if (!formatAudio.includes(format)) {
       throw new Error("⚠️ Formato no compatible.");
     }
 
-    // Intenta primero con ddownr (por compatibilidad)
-    try {
-      const config = {
-        method: "GET",
-        url: `https://p.oceansaver.in/ajax/download.php?format=${format}&url=${encodeURIComponent(url)}&api=dfcb6d76f2f6a9894gjkege8a4ab232222`,
-        headers: { "User-Agent": "Mozilla/5.0" }
-      };
-      const response = await axios.request(config);
-      if (response.data?.success) {
-        const { id, title, info } = response.data;
-        // Espera máximo 15s por el progreso
-        const downloadUrl = await ddownr.cekProgress(id, 15000);
-        return { id, title, image: info.image, downloadUrl };
-      }
-    } catch (e) {
-      // Si falla, sigue con otras APIs
+    const config = {
+      method: "GET",
+      url: `https://p.oceansaver.in/ajax/download.php?format=${format}&url=${encodeURIComponent(url)}`,
+      headers: { "User-Agent": "Mozilla/5.0" }
+    };
+    const response = await axios.request(config);
+    if (response.data?.success) {
+      const { id, title, info } = response.data;
+      const downloadUrl = await ddownr.cekProgress(id, 10000);
+      return { title, image: info.image, downloadUrl };
     }
-
-    // Prueba con otras APIs
-    for (let getUrl of audioSources) {
-      try {
-        const res = await fetch(getUrl(url));
-        const json = await res.json();
-        const downloadUrl = json.data?.dl || json.result?.download?.url || json.downloads?.url || json.data?.download?.url;
-        if (downloadUrl) {
-          return { title: json.title || "audio", downloadUrl };
-        }
-      } catch (e) {
-        // Intenta la siguiente
-      }
-    }
-    throw new Error("⛔ No se pudo procesar el audio.");
+    throw new Error("❌ DDOWNR falló.");
   },
 
-  cekProgress: async (id, timeout = 20000) => {
+  cekProgress: async (id, timeout = 10000) => {
     const config = {
       method: "GET",
       url: `https://p.oceansaver.in/ajax/progress.php?id=${id}`,
@@ -65,84 +45,72 @@ const ddownr = {
       if (response.data?.success && response.data.progress === 1000) {
         return response.data.download_url;
       }
-      if (Date.now() - start > timeout) throw new Error("⏳ Tiempo de espera agotado.");
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Espera solo 1s
+      if (Date.now() - start > timeout) throw new Error("⏳ Timeout");
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
 };
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
-  await m.react('⚡️');
+  await m.react("🔎");
   if (!text.trim()) {
-    return conn.reply(m.chat, "🔹 *YutaBot* | Escribe el nombre de la canción o video.", m);
+    return conn.reply(
+      m.chat,
+      "🎧 *YutaBot* | Escribe el nombre de la canción.",
+      m
+    );
   }
-  let progressMsg = await conn.reply(m.chat, "⏳ Cargando... 10%", m);
+
+  const msg = await m.reply("⏳ Buscando...");
 
   try {
     const search = await yts(text);
     if (!search.all.length) return m.reply("🚫 No se encontraron resultados.");
+
     const videoInfo = search.all[0];
-    const { title, thumbnail, timestamp, views, ago, url } = videoInfo;
-    await conn.sendMessage(m.chat, { text: "⏳ Cargando... 50%" }, { quoted: progressMsg });
-    const thumb = (await conn.getFile(thumbnail))?.data;
-    const vistas = formatViews(views);
+    const { title, url } = videoInfo;
 
-    const infoMessage = `🎧 *YutaBot Downloader*
-─────────────────────
-🎵 *Título:* ${title}
-⏱️ *Duración:* ${timestamp}
-📺 *Canal:* ${videoInfo.author?.name || "Desconocido"}
-👁️ *Vistas:* ${vistas}
-📅 *Publicado:* ${ago}
-🔗 *Enlace:* ${url}`;
+    // 🔥 Lanza todas las peticiones en paralelo
+    const promises = audioSources.map(getUrl =>
+      fetch(getUrl(url))
+        .then(res => res.json())
+        .then(json => {
+          const downloadUrl =
+            json.data?.dl ||
+            json.result?.download?.url ||
+            json.downloads?.url ||
+            json.data?.download?.url;
+          if (!downloadUrl) throw new Error("No válido");
+          return { title, downloadUrl };
+        })
+    );
 
-    const external = {
-      contextInfo: {
-        externalAdReply: {
-          title: "YutaBot",
-          body: "El bot que siempre te respalda.",
-          mediaType: 1,
-          previewType: 0,
-          mediaUrl: url,
-          sourceUrl: url,
-          thumbnail: thumb,
-          renderLargerThumbnail: true
-        }
-      }
-    };
+    // Si todas fallan, fallback a DDOWNR
+    promises.push(ddownr.download(url, "mp3"));
 
-    await m.react('🎧');
-    await conn.reply(m.chat, infoMessage, m, external);
-    await conn.sendMessage(m.chat, { text: "✅ Carga completa: 100%" }, { quoted: progressMsg });
+    // Corre todas, usa la primera que funcione
+    const { downloadUrl } = await Promise.any(promises);
 
-    if (["play", "yta", "ytmp3"].includes(command)) {
-      const api = await ddownr.download(url, "mp3");
-      return conn.sendMessage(m.chat, {
-        audio: { url: api.downloadUrl },
-        mimetype: 'audio/mpeg',
+    await conn.sendMessage(
+      m.chat,
+      {
+        audio: { url: downloadUrl },
+        mimetype: "audio/mpeg",
         fileName: `${title}.mp3`
-      }, { quoted: m });
-    }
+      },
+      { quoted: m }
+    );
 
-    // ... (la parte de video igual que antes)
-    // ...
-
+    await m.react("✅");
   } catch (error) {
     console.error("❌ Error:", error);
     return m.reply(`⚠️ Error: ${error.message}`);
   }
 };
 
-handler.command = ["play15", "play2", "yta", "ytmp3", "ytv", "ytmp4"];
+handler.command = ["play", "yta", "ytmp3"];
 handler.tags = ["downloader"];
-handler.help = ["play", "play2", "yta", "ytmp3", "ytv", "ytmp4"];
+handler.help = ["play", "yta", "ytmp3"];
 handler.register = true;
 
 export default handler;
-
-function formatViews(views) {
-  if (typeof views !== "number" || isNaN(views)) return "Desconocido";
-  return views >= 1000
-    ? (views / 1000).toFixed(1) + "k (" + views.toLocaleString() + ")"
-    : views.toString();
-}
