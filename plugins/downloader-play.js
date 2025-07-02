@@ -68,9 +68,11 @@ const handler = async (m, { conn, text, command }) => {
     if (command === "play") {
       const api = await yta(video.url);
       if (!api.status) throw new Error("❌ Maleficio roto al procesar audio.");
-      if (!api.result?.download) throw new Error("❌ No se obtuvo enlace de descarga de audio.");
+      // El enlace puede estar según el paquete en api.result.download ó api.url
+      const audioUrl = api.result?.download || api.url;
+      if (!audioUrl) throw new Error("❌ No se obtuvo enlace de descarga de audio.");
 
-      const head = await fetch(api.result.download, { method: "HEAD" });
+      const head = await fetch(audioUrl, { method: "HEAD" });
       let sizeMB = 0;
       if (head.ok) {
         const size = head.headers.get("content-length");
@@ -83,18 +85,26 @@ const handler = async (m, { conn, text, command }) => {
 
       await conn.sendFile(
         m.chat,
-        api.result.download,
-        `${api.result.title || "audio"}.mp3`,
-        `🎵 *${api.result.title || "Audio"}*`,
+        audioUrl,
+        `${api.result?.title || api.title || "audio"}.mp3`,
+        `🎵 *${api.result?.title || api.title || "Audio"}*`,
         m
       );
-
-    } else if (command === "play2" || command === "playvid") {
+    } 
+    else if (command === "play2" || command === "playvid") {
       const api = await ytv(video.url);
-      if (!api.status) throw new Error("❌ Maleficio roto al procesar video.");
-      if (!api.url) throw new Error("❌ No se obtuvo enlace de descarga de video.");
 
-      const head = await fetch(api.url, { method: "HEAD" });
+      // A veces el enlace está en api.result.download o api.url, ajustamos para soportar ambos
+      const videoUrl = api.result?.download || api.url;
+      const videoTitle = api.result?.title || api.title || "video";
+
+      // Debug para ver estructura real si sigues teniendo problemas
+      console.log("API YTV:", api);
+
+      if (!api.status) throw new Error("❌ Maleficio roto al procesar video.");
+      if (!videoUrl) throw new Error("❌ No se obtuvo enlace de descarga de video.");
+
+      const head = await fetch(videoUrl, { method: "HEAD" });
       let sizeMB = 0;
       if (head.ok) {
         const size = head.headers.get("content-length");
@@ -104,22 +114,22 @@ const handler = async (m, { conn, text, command }) => {
       const asDoc = !sizeMB || sizeMB >= limitMB;
 
       if (asDoc) {
+        // WhatsApp a veces rechaza caption en documentos, por eso no lo mandamos aquí
         await conn.sendMessage(
           m.chat,
           {
-            document: { url: api.url },
+            document: { url: videoUrl },
             mimetype: 'video/mp4',
-            fileName: `${api.title || "video"}.mp4`,
-            caption: `🎥 *${api.title || "Video"}*`
+            fileName: `${videoTitle}.mp4`
           },
           { quoted: m }
         );
       } else {
         await conn.sendFile(
           m.chat,
-          api.url,
-          `${api.title || "video"}.mp4`,
-          `🎥 *${api.title || "Video"}*`,
+          videoUrl,
+          `${videoTitle}.mp4`,
+          `🎥 *${videoTitle}*`,
           m,
           null,
           { mimetype: "video/mp4" }
@@ -136,7 +146,7 @@ const handler = async (m, { conn, text, command }) => {
 };
 
 handler.help = ["play", "play2", "playvid"];
-handler.tags = ["downloader", "jujutsu"];
+handler.tags = ["descargas", "descargas"];
 handler.command = ["play", "play2", "playvid"];
 
 export default handler;
