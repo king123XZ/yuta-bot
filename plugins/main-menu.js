@@ -7,7 +7,7 @@ const clockString = ms => {
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 };
 
-const videoUrl = "https://cdn.russellxz.click/f630e442.mp4"; // Video tipo GIF
+const videoUrl = "https://cdn.russellxz.click/f630e442.mp4";
 
 const menuHeader = `
 ╔═════『 𓆩⟦✦ 𝙹𝚄𝙹𝚄𝚃𝚂𝚄 𝙺𝙰𝙸𝚂𝙴𝙽 ✦⟧𓆪 』═════╗
@@ -24,7 +24,6 @@ const sectionDivider = '╰⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻�
 
 const menuFooter = `
 ╔═════『 𓆩⟦✦ YUTA ✦⟧𓆪 』═════╗
-
 `.trim();
 
 let handler = async (m, { conn, usedPrefix: _p }) => {
@@ -38,57 +37,38 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     const uptime = clockString(process.uptime() * 1000);
 
     let name = "𝑼𝒔𝒖𝒂𝒓𝒊𝒐";
-    try {
-      name = await conn.getName(m.sender);
-    } catch {}
+    try { name = await conn.getName(m.sender); } catch {}
 
     let categorizedCommands = {};
 
-    Object.values(global.plugins)
-      .filter(p => p?.help && !p.disabled)
-      .forEach(p => {
-        const tags = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? [p.tags] : ['Otros']);
-        const tag = tags[0] || 'Otros';
-        if (!Array.isArray(p.help) && typeof p.help !== 'string') return;
-        const commands = Array.isArray(p.help) ? p.help : [p.help];
+    Object.values(global.plugins).filter(p => p?.help && !p.disabled).forEach(p => {
+      const tags = Array.isArray(p.tags) ? p.tags : [typeof p.tags === 'string' ? p.tags : 'Otros'];
+      const tag = tags[0] || 'Otros';
+      const commands = Array.isArray(p.help) ? p.help : [p.help];
+      categorizedCommands[tag] = categorizedCommands[tag] || new Set();
+      commands.forEach(cmd => categorizedCommands[tag].add(cmd));
+    });
 
-        categorizedCommands[tag] = categorizedCommands[tag] || new Set();
-        commands.forEach(cmd => categorizedCommands[tag].add(cmd));
-      });
-
-    // Emojis y efectos para cada menú
     const emojis = {
-      anime: "🌸",
-      info: "ℹ️",
-      search: "🔎",
-      diversión: "🎉",
-      subbots: "🤖",
-      rpg: "🌀",
-      registro: "📝",
-      sticker: "🎨",
-      imagen: "🖼️",
-      logo: "🖌️",
-      configuración: "⚙️",
-      premium: "💎",
-      descargas: "📥",
-      herramientas: "🛠️",
-      nsfw: "🔞",
-      "base de datos": "📀",
-      audios: "🔊",
-      "free fire": "🔥",
+      anime: "🌸", info: "ℹ️", search: "🔎", diversión: "🎉",
+      subbots: "🤖", rpg: "🌀", registro: "📝", sticker: "🎨",
+      imagen: "🖼️", logo: "🖌️", configuración: "⚙️", premium: "💎",
+      descargas: "📥", herramientas: "🛠️", nsfw: "🔞",
+      "base de datos": "📀", audios: "🔊", "free fire": "🔥",
       otros: "🪪"
     };
 
-    // Cuerpo del menú altamente decorado
-    const menuBody = Object.entries(categorizedCommands).map(([title, cmds]) => {
-      const cleanTitle = title.toLowerCase().trim();
-      const emoji = emojis[cleanTitle] || "✦";
+    // ORDEN opcional de categorías
+    const orderedTags = ["anime", "info", "search", "diversión", "subbots", "rpg", "registro", "sticker", "imagen", "logo", "configuración", "premium", "descargas", "herramientas", "nsfw", "base de datos", "audios", "free fire", "otros"];
+
+    const menuBody = orderedTags.filter(tag => categorizedCommands[tag] !== undefined).map(tag => {
+      const emoji = emojis[tag] || "✦";
       const decoStart = "•⟡";
       const decoEnd = "⟡•";
-      const entries = [...cmds].map(cmd =>
+      const entries = [...categorizedCommands[tag]].map(cmd =>
         `║ ${decoStart} _${_p}${cmd}_ ${decoEnd}`
       ).join('\n');
-      return `╔═『 ${emoji} 𓃠 ${title.toUpperCase()} 』═╗\n${entries}\n${sectionDivider}`;
+      return `╔═『 ${emoji} 𓃠 ${tag.toUpperCase()} 』═╗\n${entries}\n${sectionDivider}`;
     }).join('\n\n');
 
     const finalHeader = menuHeader
@@ -101,18 +81,18 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
       .replace('%uptime', uptime)
       .replace('%total', totalreg);
 
-    const fullMenu = `⸻⸻⸻⸻⸻⸻⸻⸻ DV YER🔥 ⸻⸻⸻⸻⸻⸻⸻⸻\n\n${finalHeader}\n\n${menuBody}\n\n${menuFooter}\n\n╔════════════════════════╗\n║ Recursos decorativos:  ║\n╠ Tabla Letras 🌀: 𝑨 𝑩 𝑪 𝑫 𝑬 𝑭 𝑮 ...\n╠ Decos: ৡৢ͜͡  ᬊ͜͡   ೈ፝͜͡   ░⃟⃛ ➮ ⏤͟͟͞͞ ᭄ ⎊ ⎈ ꧁ ꧂   ࿗ ༒ ༆ༀ\n╚════════════════════════╝\n`;
+    const fullMenu = `⸻⸻⸻⸻⸻⸻⸻⸻ DV YER 🔥 ⸻⸻⸻⸻⸻⸻⸻⸻\n\n${finalHeader}\n\n${menuBody}\n\n${menuFooter}\n\n╔════════════════════════╗\n║ Recursos decorativos:  ║\n╠ Letras: 𝑨 𝑩 𝑪 𝑫 ...\n╠ Decos: ৡৢ͜͡ ᬊ͜͡ ೈ፝͜͡ ░⃟⃛ ➮ ⏤͟͟͞͞ ᭄ ⎊ ⎈ ꧁ ꧂ ࿗ ༒ ༆ༀ\n╚════════════════════════╝`;
 
     await conn.sendMessage(m.chat, {
       video: { url: videoUrl },
-      gifPlayback: true, // loop & autoplay
+      gifPlayback: true,
       caption: fullMenu,
       mentions: [m.sender]
     }, { quoted: m });
 
   } catch (e) {
     console.error(e);
-    conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú. Por favor, inténtalo de nuevo más tarde o contacta al soporte.', m);
+    conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú. Inténtalo de nuevo.', m);
   }
 };
 
