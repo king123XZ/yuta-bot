@@ -5,8 +5,7 @@ import path from 'path';
 const AUDIO_PATH = path.resolve('./audiosYuta/audio-menuYuTa.mp3');
 const VIDEO_URL = 'https://cdn.russellxz.click/f630e442.mp4';
 
-// Formato de reloj
-const clockString = ms => {
+// Formato de reloj\nconst clockString = ms => {
   const pad = v => v.toString().padStart(2, '0');
   const h = Math.floor(ms / 3600000);
   const m = Math.floor(ms / 60000) % 60;
@@ -93,7 +92,12 @@ export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
     const totalUsers = Object.keys(global.db?.data?.users || {}).length;
     const mode = global.opts?.self ? 'Privado 🔒' : 'Público 🌐';
     const uptime = clockString(process.uptime() * 1000);
-    const name = await conn.getName(m.sender).catch(() => 'Usuario');
+
+    // Obtener nombre con manejo de errores
+    let name = 'Usuario';
+    try {
+      name = await conn.getName(m.sender);
+    } catch (e) {}
 
     const header = generateHeader({
       name,
