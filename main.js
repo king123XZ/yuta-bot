@@ -1,20 +1,25 @@
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1'
 import './config.js'
 import { createRequire } from 'module'
 import path, { join } from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { platform } from 'process'
-import fs, { readdirSync, watch } from 'fs'
+import * as ws from 'ws'
+import fs, { readdirSync, statSync, unlinkSync, existsSync, readFileSync, watch } from 'fs'
 import yargs from 'yargs'
+import { spawn } from 'child_process'
 import lodash from 'lodash'
 import chalk from 'chalk'
 import Pino from 'pino'
 import { Boom } from '@hapi/boom'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
 import { Low, JSONFile } from 'lowdb'
-import NodeCache from 'node-cache'
 import readline from 'readline'
-
-const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = await import('@whiskeysockets/baileys')
+import NodeCache from 'node-cache'
+import pkg from 'google-libphonenumber'
+const { PhoneNumberUtil } = pkg
+const phoneUtil = PhoneNumberUtil.getInstance()
+const { useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, DisconnectReason } = await import('@whiskeysockets/baileys')
 
 protoType()
 serialize()
@@ -34,7 +39,7 @@ const __dirname = global.__dirname(import.meta.url)
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 global.prefix = new RegExp('^[' + (opts['prefix'] || '*/i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.\\-.@').replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + ']')
 
-global.db = new Low(new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`))
+global.db = new Low(new JSONFile(`database.json`))
 await global.db.read()
 global.db.data ||= { users: {}, chats: {}, settings: {} }
 global.db.chain = lodash.chain(global.db.data)
@@ -53,14 +58,22 @@ function question(texto) {
   return new Promise(resolve => rl.question(texto, ans => resolve(ans.trim())))
 }
 
-// === CONFIGURACIÓN DE CONEXIÓN ===
+let opcion = process.argv.includes("qr") ? '1' : process.argv.includes("code") ? '2' : null
+
+if (!opcion) {
+  do {
+    opcion = await question(`🌱 Selecciona una opción:\n1) Conexión QR\n2) Conexión con código de 8 dígitos\n---> `)
+    if (!/^[1-2]$/.test(opcion)) console.log(`❌ Opción inválida.\n`)
+  } while (!/^[1-2]$/.test(opcion))
+}
+
 const connectionOptions = {
   logger: Pino({ level: 'silent' }),
-  printQRInTerminal: true, // deja true por defecto, lo controlas luego
-  browser: ['YutaOkkotsu', 'Chrome', '10.0.0'],
+  printQRInTerminal: opcion === '1',
+  browser: ['WaBot', 'Edge', '20.0.04'],
   auth: {
     creds: state.creds,
-    keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }))
+    keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: 'fatal' }))
   },
   msgRetryCounterCache,
   version
@@ -68,135 +81,53 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions)
 
+if (opcion === '2') {
+  let number
+  do {
+    number = await question(`📱 Ingresa tu número de WhatsApp (+51...): `)
+    number = number.replace(/\D/g, '')
+    if (!number.startsWith('+')) number = `+${number}`
+  } while (!await isValidPhoneNumber(number))
+
+  const code = await global.conn.requestPairingCode(number)
+  console.log(`🔑 Tu código de vinculación:\n👉 ${code.match(/.{1,4}/g).join('-')}`)
+  rl.close()
+}
+
+async function isValidPhoneNumber(number) {
+  try {
+    const parsedNumber = phoneUtil.parseAndKeepRawInput(number)
+    return phoneUtil.isValidNumber(parsedNumber)
+  } catch {
+    return false
+  }
+}
+
 async function connectionUpdate(update) {
-  const { connection, lastDisconnect, qr, pairingCode } = update
+  const { connection, lastDisconnect } = update
   const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 
-  if (qr) {
-    console.log(chalk.yellow('🧿 Escanea el QR para vincular tu WhatsApp.'))
-  }
+  if (update.qr) console.log(`🧿 Escanea el QR en tu WhatsApp`)
 
-  if (pairingCode) {
-    console.log(chalk.green(`🔑 Código de vinculación generado: ${pairingCode}`))
-    console.log(chalk.blue('💡 Ve a WhatsApp → Dispositivos vinculados → Vincular dispositivo → Ingresa este código.'))
-  }
-
-  if (connection === 'open') {
-    console.log(chalk.green('✅ Conexión establecida: Dominio Expandido.'))
-  }
+  if (connection === 'open') console.log(`✅ Bot conectado!`)
 
   if (connection === 'close') {
     switch (reason) {
       case DisconnectReason.badSession:
-        console.log('❌ Sesión inválida, elimina credenciales.')
-        break
-      case DisconnectReason.connectionClosed:
-        console.log('⚔️ Conexión cerrada, reiniciando...')
-        await reloadHandler(true)
-        break
-      case DisconnectReason.connectionLost:
-        console.log('🧿 Conexión perdida, intentando restaurar...')
-        await reloadHandler(true)
-        break
-      case DisconnectReason.connectionReplaced:
-        console.log('💠 Conexión reemplazada, otra sesión abierta.')
-        break
-      case DisconnectReason.loggedOut:
-        console.log('📜 Desvinculado, elimina la carpeta de sesión.')
-        break
-      case DisconnectReason.restartRequired:
-        console.log('🔑 Reinicio necesario.')
-        await reloadHandler(true)
+        console.log(`⚠️ Sesión inválida.`)
         break
       default:
-        console.log('🎴 Desconexión desconocida.')
+        console.log(`🔄 Reintentando conexión...`)
         break
     }
   }
 }
 
-global.conn.connectionUpdate = connectionUpdate
-global.conn.credsUpdate = saveCreds
-
-// === === === === ===
-// 📌 PREGUNTAR AL USUARIO: QR o Código
-const modo = await question('¿Quieres usar QR o Código? (qr/code): ')
-if (modo.toLowerCase() === 'code') {
-  const numero = await question('📱 Ingresa tu número sin + ni espacios: ')
-  if (global.conn.requestPairingCode) {
-    const code = await global.conn.requestPairingCode(numero)
-    console.log(chalk.green(`✅ Código generado: ${code}`))
-    console.log(chalk.blue('Ve a WhatsApp → Dispositivos vinculados → Vincular dispositivo → Ingresa el código.'))
-  } else {
-    console.log('❌ Tu versión de Baileys no soporta Pairing Code.')
-  }
-} else {
-  console.log('📌 Mostrando QR en consola...')
-}
-
-// === === === === ===
-
-global.conn.welcome = `✨ *Yuta Okkotsu te da la bienvenida, @user* ✨\n\n⚔️ *Dominio: @group*\n🔮 *Descripción:*\n@desc`
-global.conn.bye = `⚰️ *@user se ha ido del Dominio.*`
-global.conn.spromote = `🎖️ *@user ahora es hechicero de alto rango.*`
-global.conn.sdemote = `🪶 *@user ha sido degradado.*`
-global.conn.sDesc = `📜 *Descripción del Dominio modificada.*`
-global.conn.sSubject = `🗡️ *Nombre del Dominio alterado.*`
-global.conn.sIcon = `🌀 *Imagen del Dominio cambiada.*`
-global.conn.sRevoke = `🔑 *Enlace de invitación reiniciado.*`
-
-// === Plugins
-global.plugins = {}
-const pluginFolder = join(__dirname, './plugins')
-const pluginFilter = f => /\.js$/.test(f)
-
-async function filesInit() {
-  for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
-    try {
-      const file = global.__filename(join(pluginFolder, filename))
-      const module = await import(file)
-      global.plugins[filename] = module.default || module
-    } catch (e) {
-      console.error(e)
-    }
-  }
-}
-await filesInit()
-
-global.reload = async (_ev, filename) => {
-  if (pluginFilter(filename)) {
-    const file = global.__filename(join(pluginFolder, filename))
-    try {
-      const module = (await import(`${file}?update=${Date.now()}`))
-      global.plugins[filename] = module.default || module
-      console.log(`🧿 Plugin actualizado: ${filename}`)
-    } catch (e) {
-      console.error(`Error cargando plugin ${filename}`, e)
-    }
-  }
-}
-watch(pluginFolder, global.reload)
-
-global.reloadHandler = async function restatConn() {
-  const handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
-  global.conn.handler = handler.handler.bind(global.conn)
-  global.conn.ev.on('messages.upsert', global.conn.handler)
-  global.conn.ev.on('connection.update', global.conn.connectionUpdate)
-  global.conn.ev.on('creds.update', global.conn.credsUpdate)
-  console.log('💠 Handler recargado.')
-}
-
-await global.reloadHandler()
+global.conn.ev.on('connection.update', connectionUpdate)
+global.conn.ev.on('creds.update', saveCreds)
 
 setInterval(async () => {
   await global.db.write()
 }, 30 * 1000)
-
-setInterval(() => {
-  if (process.send) {
-    console.log('🔮 Reinicio automático programado.')
-    process.send('reset')
-  }
-}, 1000 * 60 * 45)
 
 process.on('uncaughtException', console.error)
