@@ -34,9 +34,7 @@ export default async function menuHandler(m, { conn, usedPrefix: _p, __dirname }
     let name = 'Usuario';
     try {
       name = await conn.getName(m.sender);
-    } catch (e) {
-      // fallback to default name
-    }
+    } catch (e) {}
     let totalreg = Object.keys(global.db.data.users).length
 
     // Construcción del menú
@@ -75,8 +73,20 @@ ${readMore}`
     }
     text += `\n🔹 Para más info: usa ${_p}help <comando>`
 
-    // Enviar solo texto
-    await conn.sendMessage(m.chat, { text }, { quoted: m })
+    // Botones interactivos
+    const buttons = [
+      { buttonId: `${_p}help`, buttonText: { displayText: '📚 Comandos' }, type: 1 },
+      { buttonId: `${_p}perfil`, buttonText: { displayText: '👤 Perfil' }, type: 1 },
+      { buttonId: `${_p}estadisticas`, buttonText: { displayText: '📊 Estadísticas' }, type: 1 }
+    ];
+
+    const footer = '✦ Invoca tu energía maldita con Yuta ✦';
+
+    // Enviar menú con botones
+    await conn.sendMessage(m.chat,
+      { text, footer, buttons, headerType: 1 },
+      { quoted: m }
+    );
 
   } catch (e) {
     console.error(e)
@@ -95,3 +105,4 @@ menuHandler.command = ['allmenu','menucompleto','menúcompleto','help','menu2']
 menuHandler.help = ['allmenu']
 menuHandler.tags = ['main']
 menuHandler.register = true
+
