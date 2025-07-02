@@ -3,13 +3,10 @@ import { createRequire } from 'module'
 import path, { join } from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { platform } from 'process'
-import * as ws from 'ws'
-import fs, { readdirSync, statSync, unlinkSync, existsSync, readFileSync, watch, mkdirSync, writeFileSync } from 'fs'
+import fs, { readdirSync, watch } from 'fs'
 import yargs from 'yargs'
-import { spawn } from 'child_process'
 import lodash from 'lodash'
 import chalk from 'chalk'
-import syntaxerror from 'syntax-error'
 import Pino from 'pino'
 import { Boom } from '@hapi/boom'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
@@ -17,9 +14,7 @@ import { Low, JSONFile } from 'lowdb'
 import NodeCache from 'node-cache'
 import readline from 'readline'
 
-const { PhoneNumberUtil } = (await import('google-libphonenumber')).default
-const phoneUtil = PhoneNumberUtil.getInstance()
-const { makeInMemoryStore, DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = await import('@whiskeysockets/baileys')
+const { makeInMemoryStore, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = await import('@whiskeysockets/baileys')
 
 protoType()
 serialize()
@@ -58,42 +53,14 @@ function question(texto) {
   return new Promise(resolve => rl.question(texto, ans => resolve(ans.trim())))
 }
 
-// === 🔑 Generar o restaurar CODE ===
-if (!existsSync('./session')) mkdirSync('./session')
-const sessionFile = './session/creds.json'
-
-// Mostrar CODE si existe
-if (existsSync(sessionFile)) {
-  const sessionData = readFileSync(sessionFile)
-  const sessionBase64 = Buffer.from(sessionData).toString('base64')
-  console.log(chalk.green('\n📜 Tu *Session CODE* es:\n'))
-  console.log(sessionBase64)
-  console.log(chalk.yellow('\n💡 Guárdalo bien. Para restaurar en otro dispositivo, pega este code cuando se pida.\n'))
-}
-
-// Elegir entre QR o CODE
-if (!state.creds.registered) {
-  const option = await question(chalk.blue('🔮 Vincula tu Dominio:\n1) Escanear QR\n2) Pegar CODE\n\nElige [1/2]: '))
-  if (option.trim() === '2') {
-    const code = await question(chalk.blue('🔑 Pega tu *Session CODE*: '))
-    if (code) {
-      const decoded = Buffer.from(code, 'base64').toString()
-      writeFileSync(sessionFile, decoded)
-      console.log(chalk.green('✅ Session restaurada con éxito. Reinicia el bot.'))
-      process.exit(0)
-    } else {
-      console.log(chalk.red('⚠️ No se pegó ningún CODE. Usando QR...'))
-    }
-  } else {
-    console.log(chalk.yellow('🧿 Se usará escaneo QR...'))
-  }
-}
-
 const connectionOptions = {
   logger: Pino({ level: 'silent' }),
-  printQRInTerminal: true,
+  printQRInTerminal: true, // ✅ Muestra QR en consola
   browser: ['YutaOkkotsu', 'Chrome', '10.0.0'],
-  auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" })) },
+  auth: {
+    creds: state.creds,
+    keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }))
+  },
   msgRetryCounterCache,
   version
 }
@@ -101,19 +68,26 @@ const connectionOptions = {
 global.conn = makeWASocket(connectionOptions)
 
 async function connectionUpdate(update) {
-  const { connection, lastDisconnect } = update
+  const { connection, lastDisconnect, qr, pairingCode } = update
   const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 
-  if (update.qr) {
-    console.log(chalk.yellow('🧿 Escanea el QR para expandir tu Dominio.'))
+  if (qr) {
+    console.log(chalk.yellow('🧿 Escanea el QR para vincular tu WhatsApp.'))
   }
+
+  if (pairingCode) {
+    console.log(chalk.green(`🔑 Código de vinculación generado: ${pairingCode}`))
+    console.log(chalk.blue('💡 Ve a WhatsApp → Dispositivos vinculados → Vincular dispositivo → Ingresa este código.'))
+  }
+
   if (connection === 'open') {
-    console.log(chalk.green('💠 Conexión establecida: Dominio Expandido.'))
+    console.log(chalk.green('✅ Conexión establecida: Dominio Expandido.'))
   }
+
   if (connection === 'close') {
     switch (reason) {
       case DisconnectReason.badSession:
-        console.log('🔮 Sesión inválida, elimina credenciales.')
+        console.log('❌ Sesión inválida, elimina credenciales.')
         break
       case DisconnectReason.connectionClosed:
         console.log('⚔️ Conexión cerrada, reiniciando...')
