@@ -107,7 +107,13 @@ export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
     };
 
     // Enviar solo lista de comandos
-    await conn.sendMessage(m.chat, listMessageContent, { quoted: m });
+    await conn.sendMessage(m.chat, {
+      title: listMessageContent.title,
+      text: listMessageContent.text,
+      footer: listMessageContent.footer,
+      buttonText: listMessageContent.buttonText,
+      sections: listMessageContent.sections
+    }, { quoted: m });
 
   } catch (err) {
     console.error('Error en menuHandler:', err);
