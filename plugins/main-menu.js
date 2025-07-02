@@ -31,7 +31,12 @@ export default async function menuHandler(m, { conn, usedPrefix: _p, __dirname }
     }
 
     // Nombre de usuario y totales
-    let name = await conn.getName(m.sender).catch(() => 'Usuario')
+    let name = 'Usuario';
+    try {
+      name = await conn.getName(m.sender);
+    } catch (e) {
+      // fallback to default name
+    }
     let totalreg = Object.keys(global.db.data.users).length
 
     // Construcción del menú
