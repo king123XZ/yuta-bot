@@ -58,7 +58,6 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
       otros: "🪪"
     };
 
-    // ORDEN opcional de categorías
     const orderedTags = ["anime", "info", "search", "diversión", "subbots", "rpg", "registro", "sticker", "imagen", "logo", "configuración", "premium", "descargas", "herramientas", "nsfw", "base de datos", "audios", "free fire", "otros"];
 
     const menuBody = orderedTags.filter(tag => categorizedCommands[tag] !== undefined).map(tag => {
@@ -83,16 +82,27 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
 
     const fullMenu = `⸻⸻⸻⸻⸻⸻⸻⸻ DV YER 🔥 ⸻⸻⸻⸻⸻⸻⸻⸻\n\n${finalHeader}\n\n${menuBody}\n\n${menuFooter}\n\n╔════════════════════════╗\n║ Recursos decorativos:  ║\n╠ Letras: 𝑨 𝑩 𝑪 𝑫 ...\n╠ Decos: ৡৢ͜͡ ᬊ͜͡ ೈ፝͜͡ ░⃟⃛ ➮ ⏤͟͟͞͞ ᭄ ⎊ ⎈ ꧁ ꧂ ࿗ ༒ ༆ༀ\n╚════════════════════════╝`;
 
-    await conn.sendMessage(m.chat, {
+    const buttons = [
+      { buttonId: `${_p}estado`, buttonText: { displayText: '🔄 Estado' }, type: 1 },
+      { buttonId: `${_p}listcmds`, buttonText: { displayText: '🗂️ Lista de Comandos' }, type: 1 },
+      { buttonId: `${_p}infopremium`, buttonText: { displayText: '💎 Info Premium' }, type: 1 },
+      { buttonId: `${_p}config`, buttonText: { displayText: '⚙️ Configuración' }, type: 1 },
+    ];
+
+    const template = {
       video: { url: videoUrl },
       gifPlayback: true,
       caption: fullMenu,
+      footer: '⸻ DV YER 🔥 BOT ⸻',
+      buttons: buttons,
       mentions: [m.sender]
-    }, { quoted: m });
+    };
+
+    await conn.sendMessage(m.chat, template, { quoted: m });
 
   } catch (e) {
     console.error(e);
-    conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú. Inténtalo de nuevo.', m);
+    conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú con botones.', m);
   }
 };
 
