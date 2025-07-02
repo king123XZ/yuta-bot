@@ -1,5 +1,4 @@
 import { xpRange } from '../lib/levelling.js';
-import fs from 'fs';
 
 const clockString = ms => {
   const h = Math.floor(ms / 3600000);
@@ -9,11 +8,10 @@ const clockString = ms => {
 };
 
 const videoUrl = "https://cdn.russellxz.click/f630e442.mp4";
-const audioPath = './audiosYuta/audio-menuYuTa.mp3';
 
 const menuHeader = `
 ┏━『 ✦ 𝙹𝚄𝙹𝚄𝚃𝚂𝚄 𝙺𝙰𝙸𝚂𝙴𝙽 ✦ 』━┓
-┃ 🧩 𝙽𝚘𝚖𝚋𝚛𝚎: 𝑨 %name
+┃ 🧩 𝙽𝚘𝚖𝚋𝚛𝚎: %name
 ┃ 🧩 𝙽𝚒𝚟𝚎𝚕: %level | 𝑿𝑷: %exp/%max
 ┃ 🧩 𝙻í𝚖𝚒𝚝𝚎: %limit | 𝙼𝚘𝚍𝚘: %mode
 ┃ 🧩 𝚄𝚙𝚝𝚒𝚖𝚎: %uptime
@@ -30,19 +28,21 @@ const menuFooter = `
 ┗━━━━━━━━━━━━━━━━┛
 `.trim();
 
-let handler = async (m, { conn, usedPrefix: _p }) => {
+let handler = async (m, { conn, usedPrefix: _p, __dirname }) => {
   try {
-    const user = global.db?.data?.users?.[m.sender] || { level: 1, exp: 0, limit: 5 };
+    // User info y config
+    const user = global.db.data?.users?.[m.sender] || { level: 1, exp: 0, limit: 5 };
     const { exp, level, limit } = user;
     const { min, xp } = xpRange(level, global.multiplier || 1);
-    const totalreg = Object.keys(global.db?.data?.users || {}).length;
+    const totalreg = Object.keys(global.db.data?.users || {}).length;
 
-    const mode = global.opts?.self ? 'Privado 🔒' : 'Público 🌐';
+    const mode = global.opts.self ? 'Privado 🔒' : 'Público 🌐';
     const uptime = clockString(process.uptime() * 1000);
 
     let name = "Usuario";
     try { name = await conn.getName(m.sender); } catch {}
 
+    // Menus
     let categorizedCommands = {};
     Object.values(global.plugins)
       .filter(p => p?.help && !p.disabled)
@@ -100,20 +100,6 @@ ${menuBody}
 ${menuFooter}
 ╰─────────────⟢`;
 
-    // Envía el audio (NO DETIENE si falla)
-    try {
-      if (fs.existsSync(audioPath)) {
-        await conn.sendMessage(m.chat, {
-          audio: fs.readFileSync(audioPath),
-          mimetype: 'audio/mpeg',
-          ptt: true
-        }, { quoted: m });
-      }
-    } catch (err) {
-      console.error('❌ Error enviando audio:', err);
-    }
-
-    // Intenta enviar video+caption, si falla manda texto solo
     try {
       await conn.sendMessage(m.chat, {
         video: { url: videoUrl },
@@ -122,15 +108,14 @@ ${menuFooter}
         mentions: [m.sender]
       }, { quoted: m });
     } catch (err) {
-      console.error('❌ Error enviando menú con video. Intentando solo texto...', err);
       await conn.reply(m.chat, fullMenu, m);
     }
 
   } catch (e) {
-    console.error('❌ Error general en el handler:', e);
     await conn.reply(m.chat, '⚠️ Error general al procesar el menú.', m);
   }
 };
 
 handler.command = ['menu', 'help', 'menú'];
 export default handler;
+
