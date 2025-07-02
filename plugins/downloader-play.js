@@ -4,41 +4,19 @@ import { ytv, yta } from "./_ytdl.js";
 
 const limitMB = 100;
 
-// Función para simular progreso con pausas
-async function simulateLoading(conn, chatId, quoted, initialText = "⚡ Invocando maldición...") {
-  // Envía el primer mensaje de carga
-  let message = await conn.sendMessage(chatId, { text: `${initialText} 0%` }, { quoted });
-
-  // Simula la actualización del mensaje con diferentes porcentajes y mensajes
-  const updates = [
-    { pct: 10, text: "Canalizando energía maldita... 🔥" },
-    { pct: 50, text: "Estabilizando maleficio... ⚡" },
-    { pct: 90, text: "Preparando descarga final... ☄️" },
-    { pct: 100, text: "Invocación completada ✅" }
-  ];
-
-  for (const update of updates) {
-    await new Promise(r => setTimeout(r, 1500)); // espera 1.5 segundos entre cada actualización
-    try {
-      await conn.sendMessage(chatId, {
-        edit: {
-          text: `${update.text} ${update.pct}%`
-        }
-      }, { messageId: message.key.id });
-    } catch (e) {
-      // En caso de que la edición falle, rompe el ciclo para evitar error
-      break;
-    }
-  }
-
-  return message;
-}
+// Función para crear barra de carga estilo [▓▓▓▓▓░░░░░] 50%
+const createProgressBar = (percentage) => {
+  const totalBlocks = 10;
+  const filledBlocks = Math.round((percentage / 100) * totalBlocks);
+  const emptyBlocks = totalBlocks - filledBlocks;
+  return `[${"▓".repeat(filledBlocks)}${"░".repeat(emptyBlocks)}] ${percentage}%`;
+};
 
 const handler = async (m, { conn, text, command }) => {
   if (!text) return m.reply("🌀 Invoca el nombre de un video o pega la URL de YouTube, hechicero.");
 
   try {
-    await m.react("🪄"); // reacción inicial mágica
+    await m.react("🪄");
 
     const res = await yts(text);
     if (!res || !res.all || res.all.length === 0) {
@@ -59,7 +37,6 @@ const handler = async (m, { conn, text, command }) => {
 🔗 *Enlace:* ${video.url}
 `;
 
-    // Descargar miniatura
     let thumbBuffer = null;
     try {
       const resThumb = await fetch(video.thumbnail);
@@ -74,35 +51,29 @@ const handler = async (m, { conn, text, command }) => {
       await conn.sendMessage(m.chat, { text: caption }, { quoted: m });
     }
 
-    // Simular carga y mostrar porcentaje
-    const loadingMsg = await conn.sendMessage(m.chat, { text: "⚡ Iniciando invocación 0%" }, { quoted: m });
+    // Mensaje inicial de carga con barra en 0%
+    const loadingMsg = await conn.sendMessage(m.chat, { text: `⚡ Invocando maldición... ${createProgressBar(0)}` }, { quoted: m });
 
-    // Función para editar mensaje de carga simulada
-    const simulateProgress = async () => {
-      const steps = [
-        { pct: 10, txt: "Canalizando energía maldita... 🔥" },
-        { pct: 50, txt: "Estabilizando maleficio... ⚡" },
-        { pct: 90, txt: "Preparando descarga final... ☄️" },
-        { pct: 100, txt: "Invocación completada ✅" },
-      ];
+    // Pasos con barra 10%, 70%, 100%
+    const loadingSteps = [
+      { pct: 10, txt: "🔥 Canalizando energía maldita..." },
+      { pct: 70, txt: "⚡ Estabilizando maleficio..." },
+      { pct: 100, txt: "✅ Invocación completada..." },
+    ];
 
-      for (const step of steps) {
-        await new Promise(r => setTimeout(r, 1400));
-        try {
-          await conn.sendMessage(m.chat, {
-            edit: {
-              text: `${step.txt} ${step.pct}%`
-            }
-          }, { messageId: loadingMsg.key.id });
-        } catch {
-          break;
-        }
+    for (const step of loadingSteps) {
+      await new Promise(r => setTimeout(r, 1500));
+      try {
+        await conn.sendMessage(m.chat, {
+          edit: {
+            text: `${step.txt} ${createProgressBar(step.pct)}`
+          }
+        }, { messageId: loadingMsg.key.id });
+      } catch {
+        break;
       }
-    };
+    }
 
-    await simulateProgress();
-
-    // Descargar y enviar audio/video según comando
     if (command === "play") {
       const api = await yta(video.url);
       if (!api.status) throw new Error("❌ Maleficio fallido al procesar el audio.");
@@ -122,7 +93,6 @@ const handler = async (m, { conn, text, command }) => {
 
     await m.react("✔️");
 
-    // Borrar mensaje de carga para limpiar chat
     await conn.sendMessage(m.chat, { delete: loadingMsg.key });
 
   } catch (err) {
