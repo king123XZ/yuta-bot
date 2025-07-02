@@ -10,7 +10,7 @@ const trivia = [
 ];
 
 const adivina = [
-  { img: 'https://i.imgur.com/XtXnJXd.jpg', answer: 'Gojo Satoru' }, // Usa links o rutas locales
+  { img: 'https://i.imgur.com/XtXnJXd.jpg', answer: 'Gojo Satoru' },
   { img: 'https://i.imgur.com/hvH7b7y.jpg', answer: 'Ryomen Sukuna' },
   { img: 'https://i.imgur.com/Atn1UJ8.jpg', answer: 'Nobara Kugisaki' },
 ];
@@ -22,7 +22,7 @@ const activeGames = {};
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   const id = m.sender;
 
-  // Si el usuario ya tiene un juego activo
+  // --- Si está jugando ---
   if (activeGames[id]) {
     const game = activeGames[id];
 
@@ -43,29 +43,23 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         return m.reply(`❌ *Incorrecto.* Prueba de nuevo.`);
       }
     }
-
-    // Aquí puedes manejar otros tipos si tienen respuesta
+    return; // Si ya se gestionó, salimos.
   }
 
-  // Si no tiene juego activo, mostrar menú
-  let menu = `
+  // --- Si NO está jugando, mostrar menú ---
+  if (!text.startsWith(usedPrefix)) return; // Si no es comando, ignora
+
+  if (text.trim() === usedPrefix + 'juego') {
+    let menu = `
 🎮 *Juegos Anime - Jujutsu Kaisen*
 
 1️⃣ Trivia Anime
 2️⃣ Adivina el Personaje
-3️⃣ Piedra, Papel o Tijera
-4️⃣ Ahorcado Anime
-5️⃣ Pelea RPG
-6️⃣ Misión Aleatoria
-7️⃣ Sistema de Clanes
-
-Envía el número del juego que quieres jugar.
 `.trim();
+    return m.reply(menu);
+  }
 
-  if (!text) return m.reply(menu);
-
-  // === Selección de juego ===
-  switch (text.trim()) {
+  switch (text.trim().slice(1)) { // Quita prefijo
     case '1':
       let t = trivia[Math.floor(Math.random() * trivia.length)];
       activeGames[id] = { type: 'trivia', answer: t.answer, id: randomUUID() };
@@ -75,33 +69,12 @@ Envía el número del juego que quieres jugar.
       let a = adivina[Math.floor(Math.random() * adivina.length)];
       activeGames[id] = { type: 'adivina', answer: a.answer, id: randomUUID() };
       return conn.sendFile(m.chat, a.img, 'personaje.jpg', `👀 *Adivina quién es este personaje*\n_Responde aquí._`, m);
-
-    case '3':
-      let opciones = ['Piedra', 'Papel', 'Tijera'];
-      let bot = opciones[Math.floor(Math.random() * opciones.length)];
-      return m.reply(`✊ Piedra, ✋ Papel o ✌️ Tijera?\n\nResponde con una de ellas.`);
-
-    case '4':
-      return m.reply(`🔤 *Ahorcado Anime* — (Demo)\nAún no implementado. 😅`);
-
-    case '5':
-      return m.reply(`⚔️ *Pelea RPG* — (Demo)\nAún no implementado. 😅`);
-
-    case '6':
-      let mision = ['Exorcizar una maldición de nivel C', 'Investigar una aparición', 'Proteger un objeto maldito'];
-      let mis = mision[Math.floor(Math.random() * mision.length)];
-      return m.reply(`🎯 *Misión Anime*\nTu misión: *${mis}*`);
-
-    case '7':
-      return m.reply(`🏯 *Sistema de Clanes*\nTe unirás al clan *Gojo*. Próximamente funciones avanzadas.`);
-
-    default:
-      return m.reply(`❌ *Opción no válida.* Escribe 1 - 7 para elegir.`);
   }
 };
 
+handler.customPrefix = /^.+/;
+handler.command = new RegExp(); // Atrapa todo
 handler.help = ['juego'];
 handler.tags = ['game', 'fun'];
-handler.command = /^juego$/i;
 
 export default handler;
