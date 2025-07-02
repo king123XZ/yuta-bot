@@ -1,7 +1,12 @@
 import { xpRange } from '../lib/levelling.js';
 import path from 'path';
+import fs from 'fs';
 
-// Formato de uptime HH:MM:SS
+// Configuración de recursos
+const AUDIO_PATH = path.resolve('./audiosYuta/audio-menuYuTa.mp3');
+const IMAGE_URL = 'https://i.imgur.com/4XG8aXv.jpg'; // Imagen temática de Yuta
+
+// Función para formatear uptime
 const clockString = ms => {
   const pad = v => v.toString().padStart(2, '0');
   const h = Math.floor(ms / 3600000);
@@ -10,72 +15,9 @@ const clockString = ms => {
   return [h, m, s].map(pad).join(':');
 };
 
-// Separador estilo Jujutsu Kaisen
-const sectionDivider = '༒✧༒✧༒✧༒✧༒✧༒';
-
-// Encabezado temático de Yuta
-const menuHeaderTemplate = `
-┏━『 🗡️ 𝚈𝚄𝚃𝙰 𝙾𝙺𝙺𝙾𝚃𝚂𝚄 🗡️ 』━┓
-┃ 💠 Nombre: %name
-┃ 💠 Nivel: %level | 𝑿𝑷: %exp/%max
-┃ 💠 Límite: %limit | Modo: %mode
-┃ 💠 Uptime: %uptime
-┃ 💠 Usuarios: %total
-┗━━━━━━━━━━━━━━━━━━━━━━━┛`.trim();
-
-// Pie temático con Rika
-const menuFooter = 'Invoca a Rika cuando lo necesites. 🌀';
-
-const emojis = {
-  anime: '🌸', info: 'ℹ️', search: '🔎', diversión: '🎉',
-  subbots: '🤖', rpg: '🌀', registro: '📝', sticker: '🎨',
-  imagen: '🖼️', logo: '🖌️', configuración: '⚙️', premium: '💎',
-  descargas: '📥', herramientas: '🛠️', nsfw: '🔞',
-  'base de datos': '📀', audios: '🔊', 'free fire': '🔥', otros: '🪪'
-};
-const orderedTags = [
-  'anime','info','search','diversión','subbots','rpg',
-  'registro','sticker','imagen','logo','configuración',
-  'premium','descargas','herramientas','nsfw','base de datos',
-  'audios','free fire','otros'
-];
-
-const generateHeader = ({ name, level, exp, maxExp, limit, mode, uptime, totalUsers }) =>
-  menuHeaderTemplate
-    .replace('%name', name)
-    .replace('%level', level)
-    .replace('%exp', exp)
-    .replace('%max', maxExp)
-    .replace('%limit', limit)
-    .replace('%mode', mode)
-    .replace('%uptime', uptime)
-    .replace('%total', totalUsers);
-
-const generateMenuBody = (plugins, prefix) => {
-  const categories = {};
-  for (const plugin of Object.values(plugins)) {
-    if (!plugin.help || plugin.disabled) continue;
-    const tags = Array.isArray(plugin.tags) ? plugin.tags : [plugin.tags || 'otros'];
-    const tag = tags[0];
-    categories[tag] = categories[tag] || new Set();
-    const helps = Array.isArray(plugin.help) ? plugin.help : [plugin.help];
-    helps.forEach(h => categories[tag].add(h));
-  }
-  return orderedTags
-    .filter(tag => categories[tag])
-    .map(tag => {
-      const emoji = emojis[tag] || '✦';
-      const cmds = [...categories[tag]].map(cmd => `• ${prefix}${cmd}`);
-      return {
-        title: `${emoji} ${tag.toUpperCase()}`,
-        rows: cmds.map(c => ({ title: c, rowId: c })),
-        description: ''
-      };
-    });
-};
-
 export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
   try {
+    // Obtener datos de usuario
     const { level = 1, exp = 0, limit = 5 } = global.db?.data?.users?.[m.sender] || {};
     const { min, xp: maxExp } = xpRange(level, global.multiplier || 1);
     const totalUsers = Object.keys(global.db?.data?.users || {}).length;
@@ -85,42 +27,50 @@ export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
     let name = 'Usuario';
     try { name = await conn.getName(m.sender); } catch {}
 
-    const header = generateHeader({
-      name,
-      level,
-      exp: exp - min,
-      maxExp,
-      limit,
-      mode,
-      uptime,
-      totalUsers
-    });
-    const sections = generateMenuBody(global.plugins, prefix);
+    // Construir texto de menú
+    const menuText = `*── ✦ YUTA MENU ✦ ──*
 
-    // Construir mensaje de lista
-    const listMessageContent = {
-      title: '📜 Menú de Comandos',
-      text: header,
-      footer: menuFooter,
-      buttonText: 'Ver Categorías',
-      sections
+*👤 Nombre:* _${name}_
+*💠 Nivel:* _${level}_
+*✨ XP:* _${exp - min}/${maxExp}_
+*🔖 Límite:* _${limit}_
+*⌛ Uptime:* _${uptime}_
+*🌐 Modo:* _${mode}_
+*👥 Usuarios:* _${totalUsers}_
+
+*Selecciona una opción:*`;
+
+    // Botones interactivos
+    const buttons = [
+      { buttonId: `${prefix}commands`, buttonText: { displayText: '📚 Comandos' }, type: 1 },
+      { buttonId: `${prefix}perfil`, buttonText: { displayText: '👤 Perfil' }, type: 1 },
+      { buttonId: `${prefix}estadisticas`, buttonText: { displayText: '📊 Estadísticas' }, type: 1 }
+    ];
+
+    // Template moderno con imagen y audio
+    const message = {
+      image: { url: IMAGE_URL },
+      caption: menuText,
+      footer: 'Invoca a Rika cuando lo necesites. 🌀',
+      buttons,
+      headerType: 4
     };
 
-    // Enviar solo lista de comandos
-    await conn.sendMessage(m.chat, {
-      title: listMessageContent.title,
-      text: listMessageContent.text,
-      footer: listMessageContent.footer,
-      buttonText: listMessageContent.buttonText,
-      sections: listMessageContent.sections
-    }, { quoted: m });
+    // Enviar el mensaje con botones
+    await conn.sendMessage(m.chat, message, { quoted: m });
 
-  } catch (err) {
-    console.error('Error en menuHandler:', err);
+    // Opcional: enviar audio de fondo
+    if (fs.existsSync(AUDIO_PATH)) {
+      const buffer = fs.readFileSync(AUDIO_PATH);
+      await conn.sendMessage(m.chat, { audio: buffer, mimetype: 'audio/mpeg', ptt: true });
+    }
+
+  } catch (error) {
+    console.error('Error en menuHandler:', error);
     await conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú.', m);
   }
 }
 
-menuHandler.command = ['menu', 'help', 'menú'];
-menuHandler.help = ['menu', 'help'];
+menuHandler.command = ['menu','help','menú'];
+menuHandler.help = ['menu','help'];
 menuHandler.tags = ['main'];
