@@ -1,5 +1,7 @@
 import { xpRange } from '../lib/levelling.js';
+import fs from 'fs';
 
+// Función para formato reloj
 const clockString = ms => {
   const h = Math.floor(ms / 3600000);
   const m = Math.floor(ms / 60000) % 60;
@@ -7,27 +9,30 @@ const clockString = ms => {
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 };
 
-const videoUrl = "https://o.uguu.se/bQFTjofP.mp4"; // Enlace del video tipo GIF
+// URL del video tipo GIF
+const videoUrl = "https://cdn.russellxz.click/f630e442.mp4";
 
+// Ruta del audio local
+const audioPath = './audiosYuta/audio-menuYuTa.mp3';
+
+// Header y Footer del menú
 const menuHeader = `
-╭─❒ 「 Jujutsu Kaisen 」
-│ 👤 *Nombre:* %name
-│ 🎖 *Nivel:* %level | *XP:* %exp/%max
-│ 🔓 *Límite:* %limit | *Modo:* %mode
-│ ⏱️ *Uptime:* %uptime
-│ 🌍 *Usuarios:* %total
-│ 🤖 *Bot optimizado para mejor rendimiento.*
-╰❒
+┏━『 ✦ 𝙹𝚄𝙹𝚄𝚃𝚂𝚄 𝙺𝙰𝙸𝚂𝙴𝙽 ✦ 』━┓
+┃ 🧩 𝙽𝚘𝚖𝚋𝚛𝚎: 𝑨 %name
+┃ 🧩 𝙽𝚒𝚟𝚎𝚕: %level | 𝑿𝑷: %exp/%max
+┃ 🧩 𝙻í𝚖𝚒𝚝𝚎: %limit | 𝙼𝚘𝚍𝚘: %mode
+┃ 🧩 𝚄𝚙𝚝𝚒𝚖𝚎: %uptime
+┃ 🧩 𝚄𝚜𝚞𝚊𝚛𝚒𝚘𝚜: %total
+┃ 🧩 𝙱𝚘𝚝 𝙾𝚙𝚝𝚒𝚖𝚒𝚣𝚊𝚍𝚘 🚀
+┗━━━━━━━━━━━━━━━━━━━┛
 `.trim();
 
-const sectionDivider = '╰─────────────────╯';
+const sectionDivider = '⏤͟͟͞͞⏤͟͟͞͞⏤͟͟͞͞⏤͟͟͞͞⏤͟͟͞͞⏤͟͟͞͞';
 
 const menuFooter = `
-╭─❒ 「 *📌 INFO FINAL* 」
-│ ⚠️ *Usa los comandos con el prefijo correspondiente.*
-
-> Creado por Barboza-Team
-╰❒
+┏━『 ✦ 𝚈𝚄𝚃𝙰 ✦ 』━┓
+┃ Gracias por usar este bot.
+┗━━━━━━━━━━━━━━━━┛
 `.trim();
 
 let handler = async (m, { conn, usedPrefix: _p }) => {
@@ -41,51 +46,41 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     const uptime = clockString(process.uptime() * 1000);
 
     let name = "Usuario";
-    try {
-      name = await conn.getName(m.sender);
-    } catch {}
+    try { name = await conn.getName(m.sender); } catch {}
 
     let categorizedCommands = {};
-
     Object.values(global.plugins)
       .filter(p => p?.help && !p.disabled)
       .forEach(p => {
-        const tags = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? [p.tags] : ['Otros']);
+        const tags = Array.isArray(p.tags) ? p.tags : [typeof p.tags === 'string' ? p.tags : 'Otros'];
         const tag = tags[0] || 'Otros';
-        if (!Array.isArray(p.help) && typeof p.help !== 'string') return;
         const commands = Array.isArray(p.help) ? p.help : [p.help];
-
         categorizedCommands[tag] = categorizedCommands[tag] || new Set();
         commands.forEach(cmd => categorizedCommands[tag].add(cmd));
       });
 
     const emojis = {
-      anime: "🎭",
-      info: "ℹ️",
-      search: "🔎",
-      diversión: "🎉",
-      subbots: "🤖",
-      rpg: "🌀",
-      registro: "📝",
-      sticker: "🎨",
-      imagen: "🖼️",
-      logo: "🖌️",
-      configuración: "⚙️",
-      premium: "💎",
-      descargas: "📥",
-      herramientas: "🛠️",
-      nsfw: "🔞",
-      "base de datos": "📀",
-      audios: "🔊",
-      "free fire": "🔥",
+      anime: "🌸", info: "ℹ️", search: "🔎", diversión: "🎉",
+      subbots: "🤖", rpg: "🌀", registro: "📝", sticker: "🎨",
+      imagen: "🖼️", logo: "🖌️", configuración: "⚙️", premium: "💎",
+      descargas: "📥", herramientas: "🛠️", nsfw: "🔞",
+      "base de datos": "📀", audios: "🔊", "free fire": "🔥",
       otros: "🪪"
     };
 
-    const menuBody = Object.entries(categorizedCommands).map(([title, cmds]) => {
-      const cleanTitle = title.toLowerCase().trim();
-      const emoji = emojis[cleanTitle] || "📁";
-      const entries = [...cmds].map(cmd => `│ ◦ _${_p}${cmd}_`).join('\n');
-      return `╭─「 ${emoji} *${title.toUpperCase()}* 」\n${entries}\n${sectionDivider}`;
+    const orderedTags = [
+      "anime", "info", "search", "diversión", "subbots", "rpg",
+      "registro", "sticker", "imagen", "logo", "configuración",
+      "premium", "descargas", "herramientas", "nsfw", "base de datos",
+      "audios", "free fire", "otros"
+    ];
+
+    const menuBody = orderedTags.filter(tag => categorizedCommands[tag]).map(tag => {
+      const emoji = emojis[tag] || "✦";
+      const entries = [...categorizedCommands[tag]].map(cmd =>
+        `┃ ✧ _${_p}${cmd}_`
+      ).join('\n');
+      return `┏━『 ${emoji} ${tag.toUpperCase()} 』━┓\n${entries}\n${sectionDivider}`;
     }).join('\n\n');
 
     const finalHeader = menuHeader
@@ -98,21 +93,49 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
       .replace('%uptime', uptime)
       .replace('%total', totalreg);
 
-    const fullMenu = `${finalHeader}\n\n${menuBody}\n\n${menuFooter}`;
+    const fullMenu = `╭─────────────⟢
+${finalHeader}
 
-    await conn.sendMessage(m.chat, {
-      video: { url: videoUrl },
-      gifPlayback: true, // Esto lo hace tipo GIF (loop y autoplay)
-      caption: fullMenu,
-      mentions: [m.sender]
-    }, { quoted: m });
+${menuBody}
+
+${menuFooter}
+╰─────────────⟢`;
+
+    // === Verifica existencia del audio ===
+    if (!fs.existsSync(audioPath)) {
+      console.log(`⚠️ Audio no encontrado en: ${audioPath}`);
+    } else {
+      console.log('✅ Audio encontrado, enviando...');
+      try {
+        await conn.sendMessage(m.chat, {
+          audio: fs.readFileSync(audioPath),
+          mimetype: 'audio/mpeg',
+          ptt: true
+        }, { quoted: m });
+      } catch (err) {
+        console.error('❌ Error enviando audio:', err);
+      }
+    }
+
+    // === Envía el video tipo GIF con el menú ===
+    console.log('✅ Enviando menú con video...');
+    try {
+      await conn.sendMessage(m.chat, {
+        video: { url: videoUrl },
+        caption: fullMenu,
+        gifPlayback: true,
+        mentions: [m.sender]
+      }, { quoted: m });
+    } catch (err) {
+      console.error('❌ Error enviando menú:', err);
+      await conn.reply(m.chat, '⚠️ Error al enviar el menú.', m);
+    }
 
   } catch (e) {
-    console.error(e);
-    conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú. Por favor, inténtalo de nuevo más tarde o contacta al soporte.', m);
+    console.error('❌ Error general en el handler:', e);
+    conn.reply(m.chat, '⚠️ Error general al procesar el menú.', m);
   }
 };
 
 handler.command = ['menu', 'help', 'menú'];
-
 export default handler;
