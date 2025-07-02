@@ -3,7 +3,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 const AUDIO_PATH = path.resolve('./audiosYuta/audio-menuYuTa.mp3');
-const VIDEO_URL = 'https://cdn.russellxz.click/f630e442.mp4';
+// URL opcional de video; se omite al usar lista
+// const VIDEO_URL = 'https://cdn.russellxz.click/f630e442.mp4';
 
 // Formato de uptime HH:MM:SS
 const clockString = ms => {
@@ -64,10 +65,9 @@ const generateMenuBody = (plugins, prefix) => {
     .filter(tag => categories[tag])
     .map(tag => {
       const emoji = emojis[tag] || '✦';
-      const cmds = [...categories[tag]].map(cmd => `┃ ✧ _${prefix}${cmd}_`).join('\n');
-      return `┏━『 ${emoji} ${tag.toUpperCase()} 』━┓\n${cmds}\n${sectionDivider}`;
-    })
-    .join('\n\n');
+      const cmds = [...categories[tag]].map(cmd => `• ${prefix}${cmd}`);
+      return { title: `${emoji} ${tag.toUpperCase()}`, rows: cmds.map(c => ({ title: c, rowId: c })), description: '' };
+    });
 };
 
 export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
@@ -82,8 +82,7 @@ export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
     try { name = await conn.getName(m.sender); } catch {};
 
     const header = generateHeader({ name, level, exp: exp - min, maxExp, limit, mode, uptime, totalUsers });
-    const body = generateMenuBody(global.plugins, prefix);
-    const menuText = `╭─────────────⟢\n${header}\n\n${body}\n╰─────────────⟢`;
+    const sections = generateMenuBody(global.plugins, prefix);
 
     // Enviar audio
     try {
@@ -91,22 +90,17 @@ export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
       await conn.sendMessage(m.chat, { audio: buffer, mimetype: 'audio/mpeg', ptt: true }, { quoted: m });
     } catch { console.warn('Audio no disponible'); }
 
-    // Botones interactivos
-    const buttons = [
-      { buttonId: `${prefix}perfil`, buttonText: { displayText: '👤 Perfil' }, type: 1 },
-      { buttonId: `${prefix}estadisticas`, buttonText: { displayText: '📊 Estadísticas' }, type: 1 },
-      { buttonId: `${prefix}ayuda`, buttonText: { displayText: '🔄 Actualizar' }, type: 1 }
-    ];
-
-    // Enviar menú con video y botones
-    await conn.sendMessage(m.chat, {
-      video: { url: VIDEO_URL },
-      caption: menuText,
+    // Preparar mensaje de lista
+    const listMessage = {
+      text: header,
       footer: menuFooter,
-      buttons,
-      headerType: 4,
-      gifPlayback: true
-    }, { quoted: m });
+      title: '📜 Menú de Comandos',
+      buttonText: 'Selecciona categoría',
+      sections
+    };
+
+    // Enviar lista
+    await conn.sendMessage(m.chat, listMessage, { quoted: m });
 
   } catch (err) {
     console.error('Error en menuHandler:', err);
