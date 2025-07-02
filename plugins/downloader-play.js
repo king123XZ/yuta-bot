@@ -4,7 +4,6 @@ import { ytv, yta } from "./_ytdl.js";
 
 const limitMB = 100;
 
-// Función para crear barra de carga estilo [▓▓▓▓▓░░░░░] 50%
 const createProgressBar = (percentage) => {
   const totalBlocks = 10;
   const filledBlocks = Math.round((percentage / 100) * totalBlocks);
@@ -13,15 +12,13 @@ const createProgressBar = (percentage) => {
 };
 
 const handler = async (m, { conn, text, command }) => {
-  if (!text) return m.reply("🌀 Invoca el nombre de un video o pega la URL de YouTube, hechicero.");
+  if (!text) return m.reply("🌊 Invoca el nombre de un video o pega el enlace de YouTube, hechicero.");
 
   try {
     await m.react("🪄");
 
     const res = await yts(text);
-    if (!res || !res.all || res.all.length === 0) {
-      return m.reply("⚠️ No se detectaron energías malditas, no se encontró el video.");
-    }
+    if (!res?.all?.length) return m.reply("⚠️ No se encontró energía maldita (video no hallado).");
 
     const video = res.all[0];
 
@@ -37,67 +34,99 @@ const handler = async (m, { conn, text, command }) => {
 🔗 *Enlace:* ${video.url}
 `;
 
-    let thumbBuffer = null;
+    let thumbBuffer;
     try {
       const resThumb = await fetch(video.thumbnail);
       if (resThumb.ok) thumbBuffer = await resThumb.buffer();
     } catch (e) {
-      console.log("Error descargando miniatura:", e);
+      console.log("Miniatura fallida:", e);
     }
 
     if (thumbBuffer) {
       await conn.sendFile(m.chat, thumbBuffer, "jujutsu_thumb.jpg", caption, m);
     } else {
-      await conn.sendMessage(m.chat, { text: caption }, { quoted: m });
+      await m.reply(caption);
     }
 
-    // Mensaje inicial de carga con barra en 0%
-    const loadingMsg = await conn.sendMessage(m.chat, { text: `⚡ Invocando maldición... ${createProgressBar(0)}` }, { quoted: m });
+    const loadingMsg = await conn.sendMessage(
+      m.chat,
+      { text: `⚡ Invocando maldición... ${createProgressBar(0)}` },
+      { quoted: m }
+    );
 
-    // Pasos con barra 10%, 70%, 100%
-    const loadingSteps = [
+    const steps = [
       { pct: 10, txt: "🔥 Canalizando energía maldita..." },
-      { pct: 70, txt: "⚡ Estabilizando maleficio..." },
+      { pct: 70, txt: "⚡ Refinando maleficio..." },
       { pct: 100, txt: "✅ Invocación completada..." },
     ];
 
-    for (const step of loadingSteps) {
-      await new Promise(r => setTimeout(r, 1500));
+    for (const step of steps) {
+      await new Promise((r) => setTimeout(r, 1400));
       try {
-        await conn.sendMessage(m.chat, {
-          edit: {
-            text: `${step.txt} ${createProgressBar(step.pct)}`
-          }
-        }, { messageId: loadingMsg.key.id });
-      } catch {
-        break;
+        await conn.sendMessage(
+          m.chat,
+          { text: `${step.txt} ${createProgressBar(step.pct)}` },
+          { quoted: loadingMsg }
+        );
+      } catch (e) {
+        console.log("Error edit carga:", e);
       }
     }
 
     if (command === "play") {
       const api = await yta(video.url);
-      if (!api.status) throw new Error("❌ Maleficio fallido al procesar el audio.");
+      if (!api.status) throw new Error("❌ Maleficio roto al procesar audio.");
 
-      await conn.sendFile(m.chat, api.result.download, `${api.result.title}.mp3`, null, m);
+      // Verificar tamaño del archivo antes de enviar
+      const head = await fetch(api.result.download, { method: "HEAD" });
+      let sizeMB = 0;
+      if (head.ok) {
+        const size = head.headers.get("content-length");
+        sizeMB = size ? Number(size) / (1024 * 1024) : 0;
+      }
+      console.log("Tamaño del audio:", sizeMB.toFixed(2), "MB");
+
+      if (sizeMB > limitMB) {
+        return m.reply(`⚠️ El audio pesa ${sizeMB.toFixed(1)} MB, excede el límite de ${limitMB} MB.`);
+      }
+
+      await conn.sendFile(
+        m.chat,
+        api.result.download,
+        `${api.result.title}.mp3`,
+        `🎵 *${api.result.title}*`,
+        m
+      );
     } else if (command === "play2" || command === "playvid") {
       const api = await ytv(video.url);
-      if (!api.status) throw new Error("❌ Maleficio fallido al procesar el video.");
+      if (!api.status) throw new Error("❌ Maleficio roto al procesar video.");
 
-      const resVid = await fetch(api.url);
-      if (!resVid.ok) throw new Error("❌ No se pudo invocar el video");
-      const sizeMB = (parseInt(resVid.headers.get("content-length")) || 0) / (1024 * 1024);
+      const head = await fetch(api.url, { method: "HEAD" });
+      let sizeMB = 0;
+      if (head.ok) {
+        const size = head.headers.get("content-length");
+        sizeMB = size ? Number(size) / (1024 * 1024) : 0;
+      }
+      console.log("Tamaño del video:", sizeMB.toFixed(2), "MB");
+
       const asDoc = sizeMB >= limitMB;
 
-      await conn.sendFile(m.chat, api.url, `${api.title}.mp4`, null, m, null, { asDocument: asDoc, mimetype: "video/mp4" });
+      await conn.sendFile(
+        m.chat,
+        api.url,
+        `${api.title}.mp4`,
+        `🎥 *${api.title}*`,
+        m,
+        null,
+        { asDocument: asDoc, mimetype: "video/mp4" }
+      );
     }
 
     await m.react("✔️");
 
-    await conn.sendMessage(m.chat, { delete: loadingMsg.key });
-
   } catch (err) {
-    console.error("Error en handler Yūji play:", err);
-    m.reply(`💀 Maldición detectada:\n${err.message || err}`);
+    console.error("Error YujiPlay:", err);
+    m.reply(`💀 Maldición fallida:\n${err.message || err}`);
   }
 };
 
