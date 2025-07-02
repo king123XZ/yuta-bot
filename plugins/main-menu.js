@@ -5,7 +5,7 @@ import path from 'path';
 const AUDIO_PATH = path.resolve('./audiosYuta/audio-menuYuTa.mp3');
 const VIDEO_URL = 'https://cdn.russellxz.click/f630e442.mp4';
 
-// Función para formatear uptime en HH:MM:SS
+// Formato de uptime HH:MM:SS
 const clockString = ms => {
   const pad = v => v.toString().padStart(2, '0');
   const h = Math.floor(ms / 3600000);
@@ -14,7 +14,7 @@ const clockString = ms => {
   return [h, m, s].map(pad).join(':');
 };
 
-// Separador con estilo Jujutsu Kaisen
+// Separador estilo Jujutsu Kaisen
 const sectionDivider = '༒✧༒✧༒✧༒✧༒✧༒';
 
 // Encabezado temático de Yuta
@@ -28,10 +28,7 @@ const menuHeaderTemplate = `
 ┗━━━━━━━━━━━━━━━━━━━━━━━┛`.trim();
 
 // Pie temático con Rika
-const menuFooter = `
-┏━『 ✦ RIKA YUTA ✦ 』━┓
-┃ Invoca a Rika cuando lo necesites. 🌀
-┗━━━━━━━━━━━━━━━━━┛`.trim();
+const menuFooter = 'Invoca a Rika cuando lo necesites. 🌀';
 
 const emojis = {
   anime: '🌸', info: 'ℹ️', search: '🔎', diversión: '🎉',
@@ -40,13 +37,7 @@ const emojis = {
   descargas: '📥', herramientas: '🛠️', nsfw: '🔞',
   'base de datos': '📀', audios: '🔊', 'free fire': '🔥', otros: '🪪'
 };
-
-const orderedTags = [
-  'anime','info','search','diversión','subbots','rpg',
-  'registro','sticker','imagen','logo','configuración',
-  'premium','descargas','herramientas','nsfw','base de datos',
-  'audios','free fire','otros'
-];
+const orderedTags = ['anime','info','search','diversión','subbots','rpg','registro','sticker','imagen','logo','configuración','premium','descargas','herramientas','nsfw','base de datos','audios','free fire','otros'];
 
 const generateHeader = ({ name, level, exp, maxExp, limit, mode, uptime, totalUsers }) =>
   menuHeaderTemplate
@@ -65,9 +56,9 @@ const generateMenuBody = (plugins, prefix) => {
     if (!plugin.help || plugin.disabled) continue;
     const tags = Array.isArray(plugin.tags) ? plugin.tags : [plugin.tags || 'otros'];
     const tag = tags[0];
-    const helps = Array.isArray(plugin.help) ? plugin.help : [plugin.help];
     categories[tag] = categories[tag] || new Set();
-    for (const h of helps) categories[tag].add(h);
+    const helps = Array.isArray(plugin.help) ? plugin.help : [plugin.help];
+    helps.forEach(h => categories[tag].add(h));
   }
   return orderedTags
     .filter(tag => categories[tag])
@@ -81,45 +72,40 @@ const generateMenuBody = (plugins, prefix) => {
 
 export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
   try {
-    const { level=1, exp=0, limit=5 } = global.db?.data?.users?.[m.sender] || {};
+    const { level = 1, exp = 0, limit = 5 } = global.db?.data?.users?.[m.sender] || {};
     const { min, xp: maxExp } = xpRange(level, global.multiplier || 1);
     const totalUsers = Object.keys(global.db?.data?.users || {}).length;
-    const mode = global.opts?.self ? 'Privado 🔒' : 'Público 🌐';
+    const mode = global.opts.self ? 'Privado 🔒' : 'Público 🌐';
     const uptime = clockString(process.uptime() * 1000);
 
     let name = 'Usuario';
-    try {
-      name = await conn.getName(m.sender);
-    } catch {}
+    try { name = await conn.getName(m.sender); } catch {};
 
-    const header = generateHeader({
-      name,
-      level,
-      exp: exp - min,
-      maxExp,
-      limit,
-      mode,
-      uptime,
-      totalUsers
-    });
-
+    const header = generateHeader({ name, level, exp: exp - min, maxExp, limit, mode, uptime, totalUsers });
     const body = generateMenuBody(global.plugins, prefix);
-    const menuText = `╭─────────────⟢\n${header}\n\n${body}\n\n${menuFooter}\n╰─────────────⟢`;
+    const menuText = `╭─────────────⟢\n${header}\n\n${body}\n╰─────────────⟢`;
 
     // Enviar audio
     try {
       const buffer = await fs.readFile(AUDIO_PATH);
       await conn.sendMessage(m.chat, { audio: buffer, mimetype: 'audio/mpeg', ptt: true }, { quoted: m });
-    } catch {
-      console.warn('Audio no disponible');
-    }
+    } catch { console.warn('Audio no disponible'); }
 
-    // Enviar menú GIF
+    // Botones interactivos
+    const buttons = [
+      { buttonId: `${prefix}perfil`, buttonText: { displayText: '👤 Perfil' }, type: 1 },
+      { buttonId: `${prefix}estadisticas`, buttonText: { displayText: '📊 Estadísticas' }, type: 1 },
+      { buttonId: `${prefix}ayuda`, buttonText: { displayText: '🔄 Actualizar' }, type: 1 }
+    ];
+
+    // Enviar menú con video y botones
     await conn.sendMessage(m.chat, {
       video: { url: VIDEO_URL },
       caption: menuText,
-      gifPlayback: true,
-      mentions: [m.sender]
+      footer: menuFooter,
+      buttons,
+      headerType: 4,
+      gifPlayback: true
     }, { quoted: m });
 
   } catch (err) {
