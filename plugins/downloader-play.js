@@ -48,43 +48,33 @@ const handler = async (m, { conn, text, command }) => {
       await m.reply(caption);
     }
 
-    const loadingMsg = await conn.sendMessage(
+    // Mensaje de carga inicial (50% directo)
+    let loadingMsg = await conn.sendMessage(
       m.chat,
-      { text: `⚡ Invocando maldición... ${createProgressBar(0)}` },
+      { text: `⚡ Invocando maldición... ${createProgressBar(50)}` },
       { quoted: m }
     );
 
-    const steps = [
-      { pct: 10, txt: "🔥 Canalizando energía maldita..." },
-      { pct: 70, txt: "⚡ Refinando maleficio..." },
-      { pct: 100, txt: "✅ Invocación completada..." },
-    ];
+    // Esperar y pasar directo a 100%
+    await new Promise((r) => setTimeout(r, 2000));
 
-    for (const step of steps) {
-      await new Promise((r) => setTimeout(r, 1400));
-      try {
-        await conn.sendMessage(
-          m.chat,
-          { text: `${step.txt} ${createProgressBar(step.pct)}` },
-          { quoted: loadingMsg }
-        );
-      } catch (e) {
-        console.log("Error edit carga:", e);
-      }
-    }
+    await conn.sendMessage(
+      m.chat,
+      { text: `✅ Invocación completada... ${createProgressBar(100)}` },
+      { quoted: loadingMsg }
+    );
 
     if (command === "play") {
       const api = await yta(video.url);
       if (!api.status) throw new Error("❌ Maleficio roto al procesar audio.");
 
-      // Verificar tamaño del archivo antes de enviar
+      // Verificar tamaño real
       const head = await fetch(api.result.download, { method: "HEAD" });
       let sizeMB = 0;
       if (head.ok) {
         const size = head.headers.get("content-length");
         sizeMB = size ? Number(size) / (1024 * 1024) : 0;
       }
-      console.log("Tamaño del audio:", sizeMB.toFixed(2), "MB");
 
       if (sizeMB > limitMB) {
         return m.reply(`⚠️ El audio pesa ${sizeMB.toFixed(1)} MB, excede el límite de ${limitMB} MB.`);
@@ -107,7 +97,6 @@ const handler = async (m, { conn, text, command }) => {
         const size = head.headers.get("content-length");
         sizeMB = size ? Number(size) / (1024 * 1024) : 0;
       }
-      console.log("Tamaño del video:", sizeMB.toFixed(2), "MB");
 
       const asDoc = sizeMB >= limitMB;
 
