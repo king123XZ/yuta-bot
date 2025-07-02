@@ -10,9 +10,9 @@ const trivia = [
 ];
 
 const adivina = [
-  { img: 'https://i.imgur.com/XtXnJXd.jpg', answer: 'Gojo Satoru' },
-  { img: 'https://i.imgur.com/hvH7b7y.jpg', answer: 'Ryomen Sukuna' },
-  { img: 'https://i.imgur.com/Atn1UJ8.jpg', answer: 'Nobara Kugisaki' },
+  { img: 'https://o.uguu.se/tsTBXJoX.jpg', answer: 'Gojo Satoru' },
+  { img: 'https://o.uguu.se/Urhctjsi.jpg', answer: 'Ryomen Sukuna' },
+  { img: 'https://o.uguu.se/WUfPqdZd.jpg', answer: 'Nobara Kugisaki' },
 ];
 
 const activeGames = {};
