@@ -4,7 +4,7 @@ import path, { join } from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { platform } from 'process'
 import * as ws from 'ws'
-import fs, { readdirSync, statSync, unlinkSync, existsSync, readFileSync, watch, mkdirSync } from 'fs'
+import fs, { readdirSync, statSync, unlinkSync, existsSync, readFileSync, watch, mkdirSync, writeFileSync } from 'fs'
 import yargs from 'yargs'
 import { spawn } from 'child_process'
 import lodash from 'lodash'
@@ -56,6 +56,37 @@ const rl = readline.createInterface({
 
 function question(texto) {
   return new Promise(resolve => rl.question(texto, ans => resolve(ans.trim())))
+}
+
+// === 🔑 Generar o restaurar CODE ===
+if (!existsSync('./session')) mkdirSync('./session')
+const sessionFile = './session/creds.json'
+
+// Mostrar CODE si existe
+if (existsSync(sessionFile)) {
+  const sessionData = readFileSync(sessionFile)
+  const sessionBase64 = Buffer.from(sessionData).toString('base64')
+  console.log(chalk.green('\n📜 Tu *Session CODE* es:\n'))
+  console.log(sessionBase64)
+  console.log(chalk.yellow('\n💡 Guárdalo bien. Para restaurar en otro dispositivo, pega este code cuando se pida.\n'))
+}
+
+// Elegir entre QR o CODE
+if (!state.creds.registered) {
+  const option = await question(chalk.blue('🔮 Vincula tu Dominio:\n1) Escanear QR\n2) Pegar CODE\n\nElige [1/2]: '))
+  if (option.trim() === '2') {
+    const code = await question(chalk.blue('🔑 Pega tu *Session CODE*: '))
+    if (code) {
+      const decoded = Buffer.from(code, 'base64').toString()
+      writeFileSync(sessionFile, decoded)
+      console.log(chalk.green('✅ Session restaurada con éxito. Reinicia el bot.'))
+      process.exit(0)
+    } else {
+      console.log(chalk.red('⚠️ No se pegó ningún CODE. Usando QR...'))
+    }
+  } else {
+    console.log(chalk.yellow('🧿 Se usará escaneo QR...'))
+  }
 }
 
 const connectionOptions = {
