@@ -48,27 +48,26 @@ const handler = async (m, { conn, text, command }) => {
       await m.reply(caption);
     }
 
-    // Mensaje de carga inicial (50% directo)
-    let loadingMsg = await conn.sendMessage(
+    // Mensaje de carga inicial (50%)
+    await conn.sendMessage(
       m.chat,
       { text: `⚡ Invocando maldición... ${createProgressBar(50)}` },
       { quoted: m }
     );
 
-    // Esperar y pasar directo a 100%
+    // Esperar y pasar a 100%
     await new Promise((r) => setTimeout(r, 2000));
 
     await conn.sendMessage(
       m.chat,
       { text: `✅ Invocación completada... ${createProgressBar(100)}` },
-      { quoted: loadingMsg }
+      { quoted: m }
     );
 
     if (command === "play") {
       const api = await yta(video.url);
       if (!api.status) throw new Error("❌ Maleficio roto al procesar audio.");
 
-      // Verificar tamaño real
       const head = await fetch(api.result.download, { method: "HEAD" });
       let sizeMB = 0;
       if (head.ok) {
@@ -87,6 +86,7 @@ const handler = async (m, { conn, text, command }) => {
         `🎵 *${api.result.title}*`,
         m
       );
+
     } else if (command === "play2" || command === "playvid") {
       const api = await ytv(video.url);
       if (!api.status) throw new Error("❌ Maleficio roto al procesar video.");
@@ -98,17 +98,33 @@ const handler = async (m, { conn, text, command }) => {
         sizeMB = size ? Number(size) / (1024 * 1024) : 0;
       }
 
-      const asDoc = sizeMB >= limitMB;
+      // Si no tenemos size o es grande, mandamos como documento
+      const asDoc = !sizeMB || sizeMB >= limitMB;
 
-      await conn.sendFile(
-        m.chat,
-        api.url,
-        `${api.title}.mp4`,
-        `🎥 *${api.title}*`,
-        m,
-        null,
-        { asDocument: asDoc, mimetype: "video/mp4" }
-      );
+      if (asDoc) {
+        // Forzar envío como documento
+        await conn.sendMessage(
+          m.chat,
+          {
+            document: { url: api.url },
+            mimetype: 'video/mp4',
+            fileName: `${api.title}.mp4`,
+            caption: `🎥 *${api.title}*`
+          },
+          { quoted: m }
+        );
+      } else {
+        // Enviar como video normal (pequeño)
+        await conn.sendFile(
+          m.chat,
+          api.url,
+          `${api.title}.mp4`,
+          `🎥 *${api.title}*`,
+          m,
+          null,
+          { mimetype: "video/mp4" }
+        );
+      }
     }
 
     await m.react("✔️");
@@ -120,7 +136,7 @@ const handler = async (m, { conn, text, command }) => {
 };
 
 handler.help = ["play", "play2", "playvid"];
-handler.tags = ["descargas", "descargas"];
+handler.tags = ["downloader", "jujutsu"];
 handler.command = ["play", "play2", "playvid"];
 
 export default handler;
