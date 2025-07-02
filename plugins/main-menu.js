@@ -1,7 +1,6 @@
 import { xpRange } from '../lib/levelling.js';
 import fs from 'fs';
 
-// Función para formato reloj
 const clockString = ms => {
   const h = Math.floor(ms / 3600000);
   const m = Math.floor(ms / 60000) % 60;
@@ -9,13 +8,9 @@ const clockString = ms => {
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 };
 
-// URL del video tipo GIF
 const videoUrl = "https://cdn.russellxz.click/f630e442.mp4";
-
-// Ruta del audio local
 const audioPath = './audiosYuta/audio-menuYuTa.mp3';
 
-// Header y Footer del menú
 const menuHeader = `
 ┏━『 ✦ 𝙹𝚄𝙹𝚄𝚃𝚂𝚄 𝙺𝙰𝙸𝚂𝙴𝙽 ✦ 』━┓
 ┃ 🧩 𝙽𝚘𝚖𝚋𝚛𝚎: 𝑨 %name
@@ -52,7 +47,10 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     Object.values(global.plugins)
       .filter(p => p?.help && !p.disabled)
       .forEach(p => {
-        const tags = Array.isArray(p.tags) ? p.tags : [typeof p.tags === 'string' ? p.tags : 'Otros'];
+        let tags = [];
+        if (Array.isArray(p.tags)) tags = p.tags;
+        else if (typeof p.tags === 'string') tags = [p.tags];
+        else tags = ['Otros'];
         const tag = tags[0] || 'Otros';
         const commands = Array.isArray(p.help) ? p.help : [p.help];
         categorizedCommands[tag] = categorizedCommands[tag] || new Set();
@@ -75,13 +73,14 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
       "audios", "free fire", "otros"
     ];
 
-    const menuBody = orderedTags.filter(tag => categorizedCommands[tag]).map(tag => {
-      const emoji = emojis[tag] || "✦";
-      const entries = [...categorizedCommands[tag]].map(cmd =>
-        `┃ ✧ _${_p}${cmd}_`
-      ).join('\n');
-      return `┏━『 ${emoji} ${tag.toUpperCase()} 』━┓\n${entries}\n${sectionDivider}`;
-    }).join('\n\n');
+    const menuBody = orderedTags.filter(tag => categorizedCommands[tag])
+      .map(tag => {
+        const emoji = emojis[tag] || "✦";
+        const entries = [...categorizedCommands[tag]].map(cmd =>
+          `┃ ✧ _${_p}${cmd}_`
+        ).join('\n');
+        return `┏━『 ${emoji} ${tag.toUpperCase()} 』━┓\n${entries}\n${sectionDivider}`;
+      }).join('\n\n');
 
     const finalHeader = menuHeader
       .replace('%name', name)
@@ -101,24 +100,20 @@ ${menuBody}
 ${menuFooter}
 ╰─────────────⟢`;
 
-    // === Verifica existencia del audio ===
-    if (!fs.existsSync(audioPath)) {
-      console.log(`⚠️ Audio no encontrado en: ${audioPath}`);
-    } else {
-      console.log('✅ Audio encontrado, enviando...');
-      try {
+    // Envía el audio (NO DETIENE si falla)
+    try {
+      if (fs.existsSync(audioPath)) {
         await conn.sendMessage(m.chat, {
           audio: fs.readFileSync(audioPath),
           mimetype: 'audio/mpeg',
           ptt: true
         }, { quoted: m });
-      } catch (err) {
-        console.error('❌ Error enviando audio:', err);
       }
+    } catch (err) {
+      console.error('❌ Error enviando audio:', err);
     }
 
-    // === Envía el video tipo GIF con el menú ===
-    console.log('✅ Enviando menú con video...');
+    // Intenta enviar video+caption, si falla manda texto solo
     try {
       await conn.sendMessage(m.chat, {
         video: { url: videoUrl },
@@ -127,13 +122,13 @@ ${menuFooter}
         mentions: [m.sender]
       }, { quoted: m });
     } catch (err) {
-      console.error('❌ Error enviando menú:', err);
-      await conn.reply(m.chat, '⚠️ Error al enviar el menú.', m);
+      console.error('❌ Error enviando menú con video. Intentando solo texto...', err);
+      await conn.reply(m.chat, fullMenu, m);
     }
 
   } catch (e) {
     console.error('❌ Error general en el handler:', e);
-    conn.reply(m.chat, '⚠️ Error general al procesar el menú.', m);
+    await conn.reply(m.chat, '⚠️ Error general al procesar el menú.', m);
   }
 };
 
