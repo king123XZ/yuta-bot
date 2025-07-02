@@ -21,6 +21,7 @@ const handler = async (m, { conn, text, command }) => {
     if (!res?.all?.length) return m.reply("⚠️ No se encontró energía maldita (video no hallado).");
 
     const video = res.all[0];
+    if (!video?.url) throw new Error("❌ URL del video no disponible.");
 
     const caption = `
 \`\`\`╔═══𓂀═══╗
@@ -28,9 +29,9 @@ const handler = async (m, { conn, text, command }) => {
 ╚═══𓂀═══╝\`\`\`
 
 📜 *Título:* ${video.title}
-👹 *Hechicero:* ${video.author.name}
-⏳ *Duración:* ${video.duration.timestamp}
-👁️ *Vistas:* ${video.views.toLocaleString()}
+👹 *Hechicero:* ${video.author?.name || "Desconocido"}
+⏳ *Duración:* ${video.duration?.timestamp || "?"}
+👁️ *Vistas:* ${video.views?.toLocaleString() || "?"}
 🔗 *Enlace:* ${video.url}
 `;
 
@@ -67,6 +68,7 @@ const handler = async (m, { conn, text, command }) => {
     if (command === "play") {
       const api = await yta(video.url);
       if (!api.status) throw new Error("❌ Maleficio roto al procesar audio.");
+      if (!api.result?.download) throw new Error("❌ No se obtuvo enlace de descarga de audio.");
 
       const head = await fetch(api.result.download, { method: "HEAD" });
       let sizeMB = 0;
@@ -82,14 +84,15 @@ const handler = async (m, { conn, text, command }) => {
       await conn.sendFile(
         m.chat,
         api.result.download,
-        `${api.result.title}.mp3`,
-        `🎵 *${api.result.title}*`,
+        `${api.result.title || "audio"}.mp3`,
+        `🎵 *${api.result.title || "Audio"}*`,
         m
       );
 
     } else if (command === "play2" || command === "playvid") {
       const api = await ytv(video.url);
       if (!api.status) throw new Error("❌ Maleficio roto al procesar video.");
+      if (!api.url) throw new Error("❌ No se obtuvo enlace de descarga de video.");
 
       const head = await fetch(api.url, { method: "HEAD" });
       let sizeMB = 0;
@@ -98,28 +101,25 @@ const handler = async (m, { conn, text, command }) => {
         sizeMB = size ? Number(size) / (1024 * 1024) : 0;
       }
 
-      // Si no tenemos size o es grande, mandamos como documento
       const asDoc = !sizeMB || sizeMB >= limitMB;
 
       if (asDoc) {
-        // Forzar envío como documento
         await conn.sendMessage(
           m.chat,
           {
             document: { url: api.url },
             mimetype: 'video/mp4',
-            fileName: `${api.title}.mp4`,
-            caption: `🎥 *${api.title}*`
+            fileName: `${api.title || "video"}.mp4`,
+            caption: `🎥 *${api.title || "Video"}*`
           },
           { quoted: m }
         );
       } else {
-        // Enviar como video normal (pequeño)
         await conn.sendFile(
           m.chat,
           api.url,
-          `${api.title}.mp4`,
-          `🎥 *${api.title}*`,
+          `${api.title || "video"}.mp4`,
+          `🎥 *${api.title || "Video"}*`,
           m,
           null,
           { mimetype: "video/mp4" }
