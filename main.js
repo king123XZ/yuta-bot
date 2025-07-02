@@ -14,7 +14,7 @@ import { Low, JSONFile } from 'lowdb'
 import NodeCache from 'node-cache'
 import readline from 'readline'
 
-const { makeInMemoryStore, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = await import('@whiskeysockets/baileys')
+const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = await import('@whiskeysockets/baileys')
 
 protoType()
 serialize()
@@ -53,9 +53,10 @@ function question(texto) {
   return new Promise(resolve => rl.question(texto, ans => resolve(ans.trim())))
 }
 
+// === CONFIGURACIÓN DE CONEXIÓN ===
 const connectionOptions = {
   logger: Pino({ level: 'silent' }),
-  printQRInTerminal: true, // ✅ Muestra QR en consola
+  printQRInTerminal: true, // deja true por defecto, lo controlas luego
   browser: ['YutaOkkotsu', 'Chrome', '10.0.0'],
   auth: {
     creds: state.creds,
@@ -117,6 +118,24 @@ async function connectionUpdate(update) {
 global.conn.connectionUpdate = connectionUpdate
 global.conn.credsUpdate = saveCreds
 
+// === === === === ===
+// 📌 PREGUNTAR AL USUARIO: QR o Código
+const modo = await question('¿Quieres usar QR o Código? (qr/code): ')
+if (modo.toLowerCase() === 'code') {
+  const numero = await question('📱 Ingresa tu número sin + ni espacios: ')
+  if (global.conn.requestPairingCode) {
+    const code = await global.conn.requestPairingCode(numero)
+    console.log(chalk.green(`✅ Código generado: ${code}`))
+    console.log(chalk.blue('Ve a WhatsApp → Dispositivos vinculados → Vincular dispositivo → Ingresa el código.'))
+  } else {
+    console.log('❌ Tu versión de Baileys no soporta Pairing Code.')
+  }
+} else {
+  console.log('📌 Mostrando QR en consola...')
+}
+
+// === === === === ===
+
 global.conn.welcome = `✨ *Yuta Okkotsu te da la bienvenida, @user* ✨\n\n⚔️ *Dominio: @group*\n🔮 *Descripción:*\n@desc`
 global.conn.bye = `⚰️ *@user se ha ido del Dominio.*`
 global.conn.spromote = `🎖️ *@user ahora es hechicero de alto rango.*`
@@ -126,7 +145,7 @@ global.conn.sSubject = `🗡️ *Nombre del Dominio alterado.*`
 global.conn.sIcon = `🌀 *Imagen del Dominio cambiada.*`
 global.conn.sRevoke = `🔑 *Enlace de invitación reiniciado.*`
 
-// === Plugin Loader ===
+// === Plugins
 global.plugins = {}
 const pluginFolder = join(__dirname, './plugins')
 const pluginFilter = f => /\.js$/.test(f)
