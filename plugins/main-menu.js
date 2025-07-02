@@ -1,7 +1,7 @@
 import { xpRange } from '../lib/levelling.js';
-import fs from 'fs'; // 👈 Asegúrate de importar fs
+import fs from 'fs';
 
-// Reloj: uptime en formato hh:mm:ss
+// Función para formato reloj
 const clockString = ms => {
   const h = Math.floor(ms / 3600000);
   const m = Math.floor(ms / 60000) % 60;
@@ -9,12 +9,13 @@ const clockString = ms => {
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 };
 
-// Video tipo GIF
+// URL del video tipo GIF
 const videoUrl = "https://cdn.russellxz.click/f630e442.mp4";
 
-// Ruta de tu audio local
+// Ruta del audio local
 const audioPath = './audiosYuta/audio-menuYuTa.mp3';
 
+// Header y Footer del menú
 const menuHeader = `
 ┏━『 ✦ 𝙹𝚄𝙹𝚄𝚃𝚂𝚄 𝙺𝙰𝙸𝚂𝙴𝙽 ✦ 』━┓
 ┃ 🧩 𝙽𝚘𝚖𝚋𝚛𝚎: 𝑨 %name
@@ -100,24 +101,39 @@ ${menuBody}
 ${menuFooter}
 ╰─────────────⟢`;
 
-    // 1️⃣ Envía primero el audio local
-    await conn.sendMessage(m.chat, {
-      audio: fs.readFileSync(audioPath),
-      mimetype: 'audio/mpeg',
-      ptt: true // true = se envía como nota de voz
-    }, { quoted: m });
+    // === Verifica existencia del audio ===
+    if (!fs.existsSync(audioPath)) {
+      console.log(`⚠️ Audio no encontrado en: ${audioPath}`);
+    } else {
+      console.log('✅ Audio encontrado, enviando...');
+      try {
+        await conn.sendMessage(m.chat, {
+          audio: fs.readFileSync(audioPath),
+          mimetype: 'audio/mpeg',
+          ptt: true
+        }, { quoted: m });
+      } catch (err) {
+        console.error('❌ Error enviando audio:', err);
+      }
+    }
 
-    // 2️⃣ Luego envía el menú con video
-    await conn.sendMessage(m.chat, {
-      video: { url: videoUrl },
-      gifPlayback: true,
-      caption: fullMenu,
-      mentions: [m.sender]
-    }, { quoted: m });
+    // === Envía el video tipo GIF con el menú ===
+    console.log('✅ Enviando menú con video...');
+    try {
+      await conn.sendMessage(m.chat, {
+        video: { url: videoUrl },
+        caption: fullMenu,
+        gifPlayback: true,
+        mentions: [m.sender]
+      }, { quoted: m });
+    } catch (err) {
+      console.error('❌ Error enviando menú:', err);
+      await conn.reply(m.chat, '⚠️ Error al enviar el menú.', m);
+    }
 
   } catch (e) {
-    console.error(e);
-    conn.reply(m.chat, '⚠️ Error al generar el menú.', m);
+    console.error('❌ Error general en el handler:', e);
+    conn.reply(m.chat, '⚠️ Error general al procesar el menú.', m);
   }
 };
 
