@@ -38,7 +38,11 @@ const emojis = {
   descargas: '📥', herramientas: '🛠️', nsfw: '🔞',
   'base de datos': '📀', audios: '🔊', 'free fire': '🔥', otros: '🪪'
 };
-const orderedTags = ['anime','info','search','diversión','subbots','rpg','registro','sticker','imagen','logo','configuración','premium','descargas','herramientas','nsfw','base de datos','audios','free fire','otros'];
+const orderedTags = [
+  'anime','info','search','diversión','subbots','rpg','registro',
+  'sticker','imagen','logo','configuración','premium','descargas',
+  'herramientas','nsfw','base de datos','audios','free fire','otros'
+];
 
 const generateHeader = ({ name, level, exp, maxExp, limit, mode, uptime, totalUsers }) =>
   menuHeaderTemplate
@@ -66,29 +70,51 @@ const generateMenuBody = (plugins, prefix) => {
     .map(tag => {
       const emoji = emojis[tag] || '✦';
       const cmds = [...categories[tag]].map(cmd => `• ${prefix}${cmd}`);
-      return { title: `${emoji} ${tag.toUpperCase()}`, rows: cmds.map(c => ({ title: c, rowId: c })), description: '' };
+      return {
+        title: `${emoji} ${tag.toUpperCase()}`,
+        rows: cmds.map(c => ({ title: c, rowId: c })),
+        description: ''
+      };
     });
 };
 
 export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
   try {
-    const { level = 1, exp = 0, limit = 5 } = global.db?.data?.users?.[m.sender] || {};
+    const { level = 1, exp = 0, limit = 5 } =
+      global.db?.data?.users?.[m.sender] || {};
     const { min, xp: maxExp } = xpRange(level, global.multiplier || 1);
     const totalUsers = Object.keys(global.db?.data?.users || {}).length;
     const mode = global.opts.self ? 'Privado 🔒' : 'Público 🌐';
     const uptime = clockString(process.uptime() * 1000);
 
     let name = 'Usuario';
-    try { name = await conn.getName(m.sender); } catch {};
+    try {
+      name = await conn.getName(m.sender);
+    } catch {}
 
-    const header = generateHeader({ name, level, exp: exp - min, maxExp, limit, mode, uptime, totalUsers });
+    const header = generateHeader({
+      name,
+      level,
+      exp: exp - min,
+      maxExp,
+      limit,
+      mode,
+      uptime,
+      totalUsers
+    });
     const sections = generateMenuBody(global.plugins, prefix);
 
     // Enviar audio
     try {
       const buffer = await fs.readFile(AUDIO_PATH);
-      await conn.sendMessage(m.chat, { audio: buffer, mimetype: 'audio/mpeg', ptt: true }, { quoted: m });
-    } catch { console.warn('Audio no disponible'); }
+      await conn.sendMessage(
+        m.chat,
+        { audio: buffer, mimetype: 'audio/mpeg', ptt: true },
+        { quoted: m }
+      );
+    } catch {
+      console.warn('Audio no disponible');
+    }
 
     // Preparar mensaje de lista
     const listMessageContent = {
@@ -99,15 +125,18 @@ export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
       sections
     };
 
-    // Enviar lista de comandos
-    await conn.sendMessage(m.chat, { listMessage: listMessageContent }, { quoted: m });
-
+    // Enviar lista de comandos como un List Message
+    try {
+      await conn.sendMessage(m.chat, listMessageContent, { quoted: m });
+    } catch (e) {
+      console.error('Error enviando lista de comandos:', e);
+    }
   } catch (err) {
     console.error('Error en menuHandler:', err);
     await conn.reply(m.chat, '⚠️ Ocurrió un error al generar el menú.', m);
   }
 }
 
-menuHandler.command = ['menu','help','menú'];
-menuHandler.help = ['menu','help'];
+menuHandler.command = ['menu', 'help', 'menú'];
+menuHandler.help = ['menu', 'help'];
 menuHandler.tags = ['main'];
