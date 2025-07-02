@@ -91,16 +91,16 @@ export default async function menuHandler(m, { conn, usedPrefix: prefix }) {
     } catch { console.warn('Audio no disponible'); }
 
     // Preparar mensaje de lista
-    const listMessage = {
+    const listMessageContent = {
+      title: '📜 Menú de Comandos',
       text: header,
       footer: menuFooter,
-      title: '📜 Menú de Comandos',
       buttonText: 'Selecciona categoría',
       sections
     };
 
-    // Enviar lista
-    await conn.sendMessage(m.chat, listMessage, { quoted: m });
+    // Enviar lista de comandos
+    await conn.sendMessage(m.chat, { listMessage: listMessageContent }, { quoted: m });
 
   } catch (err) {
     console.error('Error en menuHandler:', err);
