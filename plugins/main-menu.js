@@ -1,4 +1,5 @@
 import { xpRange } from '../lib/levelling.js';
+import fs from 'fs'; // 👈 Asegúrate de importar fs
 
 // Reloj: uptime en formato hh:mm:ss
 const clockString = ms => {
@@ -10,6 +11,9 @@ const clockString = ms => {
 
 // Video tipo GIF
 const videoUrl = "https://cdn.russellxz.click/f630e442.mp4";
+
+// Ruta de tu audio local
+const audioPath = './audiosYuta/audio-menuYuTa.mp3';
 
 const menuHeader = `
 ┏━『 ✦ 𝙹𝚄𝙹𝚄𝚃𝚂𝚄 𝙺𝙰𝙸𝚂𝙴𝙽 ✦ 』━┓
@@ -96,6 +100,14 @@ ${menuBody}
 ${menuFooter}
 ╰─────────────⟢`;
 
+    // 1️⃣ Envía primero el audio local
+    await conn.sendMessage(m.chat, {
+      audio: fs.readFileSync(audioPath),
+      mimetype: 'audio/mpeg',
+      ptt: true // true = se envía como nota de voz
+    }, { quoted: m });
+
+    // 2️⃣ Luego envía el menú con video
     await conn.sendMessage(m.chat, {
       video: { url: videoUrl },
       gifPlayback: true,
