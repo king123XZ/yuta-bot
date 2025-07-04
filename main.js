@@ -156,7 +156,7 @@ const connectionOptions = {
 logger: pino({ level: 'silent' }),
 printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
 mobile: MethodMobile, 
-browser: opcion == '1' ? ['WaBot', 'Edge', '20.0.04'] : methodCodeQR ? ['WaBot', 'Edge', '20.0.04'] : ["Ubuntu", "Opera", "20.0.04"],
+browser: opcion == '1' ? ['YUTA BOT', 'Edge', '20.0.04'] : methodCodeQR ? ['YUTA', 'Edge', '20.0.04'] : ["Ubuntu", "Opera", "20.0.04"],
 auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
@@ -338,14 +338,15 @@ global.reloadHandler = async function(restatConn) {
   }
 
 
-  conn.welcome = '*👋 Hola @user*\n\n                *W E L C O M E*\n⫹⫺ Grupo: @group\n\n⫹⫺ *Descripción:*\n@desc'
-  conn.bye = '👋 Byee @user\n\n                *G O O D B Y E*'
-  conn.spromote = '*[ ℹ️ ] @user Fue promovido a administrador.*';
-  conn.sdemote = '*[ ℹ️ ] @user Fue degradado de administrador.*';
-  conn.sDesc = '*[ ℹ️ ] La descripción del grupo ha sido modificada.*';
-  conn.sSubject = '*[ ℹ️ ] El nombre del grupo ha sido modificado.*';
-  conn.sIcon = '*[ ℹ️ ] Se ha cambiado la foto de perfil del grupo.*';
-  conn.sRevoke = '*[ ℹ️ ] El enlace de invitación al grupo ha sido restablecido.*';
+conn.welcome = '*👋 ¡Hey @user!* \n\n                 *¡BIENVENIDO A LA GUERRA, @group!* \n\n⫹⫺ *Descripción:* \n@desc';
+conn.bye = '👋 *Nos vemos, @user*\n\n                *¡QUE LA SUEERTE TE ACOMPAÑE EN LA SOMBRA!*';
+conn.spromote = '*[ ℹ️ ] *@user* ahora es uno de los elegidos. ¡Administrador activado!*';
+conn.sdemote = '*[ ℹ️ ] *@user* ha caído. Administrador desactivado.*';
+conn.sDesc = '*[ ℹ️ ] *@group* ha cambiado su misión. La descripción del grupo ha sido modificada.*';
+conn.sSubject = '*[ ℹ️ ] El nombre del clan ha sido renombrado. ¡El nuevo nombre es *@group*!*';
+conn.sIcon = '*[ ℹ️ ] La apariencia del grupo ha sido modificada. ¡Nueva foto de perfil activada!*';
+conn.sRevoke = '*[ ℹ️ ] *@group* ha reiniciado su acceso. El enlace de invitación ha sido restablecido.*';
+
 
   conn.handler = handler.handler.bind(global.conn);
   conn.connectionUpdate = connectionUpdate.bind(global.conn);
