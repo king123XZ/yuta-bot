@@ -28,15 +28,15 @@ function verify() {
 }
 verify();
 
-say('sᥲsᥙkᥱ ᑲ᥆𝗍', {
+say('Yuta BOT', {
   font: 'chrome',
   align: 'center',
-  colors: ['white']
+  colors: ['Green']
 });
-say(`Developed By • sᥲsᥙkᥱ ᑲ᥆𝗍 mძ`, {
+say(`DV • YER`, {
   font: 'console',
   align: 'center',
-  colors: ['magenta']
+  colors: ['Red']
 });
 
 let isRunning = false;
