@@ -32,11 +32,11 @@ serialize();
 
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
-}; 
+};
 
 global.__dirname = function dirname(pathURL) {
   return path.dirname(global.__filename(pathURL, true));
-}; 
+};
 
 global.__require = function require(dir = import.meta.url) {
   return createRequire(dir);
@@ -203,7 +203,7 @@ conn.sSubject = '*[ ℹ️ ] El nombre del clan ha sido renombrado. ¡El nuevo n
 conn.sIcon = '*[ ℹ️ ] La apariencia del grupo ha sido modificada. ¡Nueva foto de perfil activada!*';
 conn.sRevoke = '*[ ℹ️ ] *@group* ha reiniciado su acceso. El enlace de invitación ha sido restablecido.*';
 
-function connectionUpdate(update) {
+async function connectionUpdate(update) {
   const {connection, lastDisconnect, isNewLogin} = update;
   global.stopped = connection;
   if (isNewLogin) conn.isInit = true;
@@ -224,52 +224,3 @@ function connectionUpdate(update) {
 }
 
 process.on('uncaughtException', console.error);
-
-let isInit = true;
-
-let handler = await import('./handler.js');
-global.reloadHandler = async function(restatConn) {
-  try {
-    const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
-    if (Object.keys(Handler || {}).length) handler = Handler;
-  } catch (e) {
-    console.error(e);
-  }
-  if (restatConn) {
-    const oldChats = global.conn.chats;
-    try {
-      global.conn.ws.close();
-    } catch { }
-    conn.ev.removeAllListeners();
-    global.conn = makeWASocket(connectionOptions, {chats: oldChats});
-    isInit = true;
-  }
-  if (!isInit) {
-    conn.ev.off('messages.upsert', conn.handler);
-    conn.ev.off('group-participants.update', conn.participantsUpdate);
-    conn.ev.off('groups.update', conn.groupsUpdate);
-    conn.ev.off('message.delete', conn.onDelete);
-    conn.ev.off('call', conn.onCall);
-    conn.ev.off('connection.update', conn.connectionUpdate);
-    conn.ev.off('creds.update', conn.credsUpdate);
-  }
-
-  conn.handler = handler.handler.bind(global.conn);
-  conn.connectionUpdate = connectionUpdate.bind(global.conn);
-  conn.credsUpdate = saveCreds.bind(global.conn, true);
-
-  const currentDateTime = new Date();
-  const messageDateTime = new Date(conn.ev);
-  if (currentDateTime >= messageDateTime) {
-    const chats = Object.entries(conn.chats).filter(([jid, chat]) => !jid.endsWith('@g.us') && chat.isChats).map((v) => v[0]);
-  } else {
-    const chats = Object.entries(conn.chats).filter(([jid, chat]) => !jid.endsWith('@g.us') && chat.isChats).map((v) => v[0]);
-  }
-
-  conn.ev.on('messages.upsert', conn.handler);
-  conn.ev.on('connection.update', conn.connectionUpdate);
-  conn.ev.on('creds.update', conn.credsUpdate);
-  isInit = false;
-  return true;
-};
-
