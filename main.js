@@ -147,7 +147,9 @@ const connectionOptions = {
   logger: pino({ level: 'silent' }),
   printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
   mobile: MethodMobile, 
-  browser: opcion == '1' ? ['YUTA BOT', 'Edge', '20.0.04'] : methodCodeQR ? ['YUTA', 'Edge', '20.0.04'] : ["Ubuntu", "Opera", "20.0.04"],
+browser: opcion == '1' ? ['WaBot', 'Edge', '20.0.04'] : methodCodeQR ? ['WaBot', 'Edge', '20.0.04'] : ["Ubuntu", "Opera", "20.0.04"],
+
+
   auth: {
     creds: state.creds,
     keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
